@@ -181,7 +181,8 @@
                 border: "border-green-800",
                 darkBorder: "dark:border-green-500",
                 accent: "text-green-600",
-                scoreColors: ["text-green-900 dark:text-green-900", "text-green-700 dark:text-green-700", "text-green-600 dark:text-green-500", "text-green-500 dark:text-green-300", "text-green-800 dark:text-white", "text-pink-600 dark:text-pink-500"],
+                // Terminal (Dark Mode Tweaked): 1-Green600, 2-Green500, 3-Green400, 4-White, 5-Pink
+                scoreColors: ["text-green-900 dark:text-green-900", "text-green-700 dark:text-green-600", "text-green-600 dark:text-green-500", "text-green-500 dark:text-green-400", "text-green-800 dark:text-white", "text-pink-600 dark:text-pink-500"],
                 legendFills: ["bg-green-100 dark:bg-green-900", "bg-green-100 dark:bg-green-900", "bg-green-200 dark:bg-green-800", "bg-green-300 dark:bg-green-700", "bg-green-400 dark:bg-green-600", "bg-pink-100 dark:bg-pink-900"],
                 anim: "anim-term"
             }
@@ -262,6 +263,7 @@
             // Preferences State
             const [themeKey, setThemeKey] = useState('classic');
             const [darkMode, setDarkMode] = useState(false);
+            const [ethanMode, setEthanMode] = useState(false);
             
             // Game State
             const [grid, setGrid] = useState(Array(25).fill(''));
@@ -317,6 +319,35 @@
                 localStorage.setItem('quexes_dark', isDark);
             };
             
+            const toggleEthanMode = () => {
+                setEthanMode(!ethanMode);
+            };
+
+            // Title Animation Effect
+            const [displayTitle, setDisplayTitle] = useState("QUEXES");
+            
+            useEffect(() => {
+                const target = ethanMode ? "ETHANS" : "QUEXES";
+                const source = displayTitle;
+                
+                let step = 0;
+                const maxSteps = 6;
+                
+                const interval = setInterval(() => {
+                    if (step >= maxSteps) {
+                        clearInterval(interval);
+                        setDisplayTitle(target);
+                        return;
+                    }
+                    
+                    const nextTitle = target.substring(0, step + 1) + source.substring(step + 1);
+                    setDisplayTitle(nextTitle);
+                    step++;
+                }, 80);
+                
+                return () => clearInterval(interval);
+            }, [ethanMode]);
+
             // Handle Click Outside
             useEffect(() => {
                 const handleClickOutside = (event) => {
@@ -378,6 +409,10 @@
                                 const word = str.substring(i, i + len);
                                 if (word.includes(' ')) continue; 
                                 if (isWord(word)) {
+                                    
+                                    // Ethan Mode Check
+                                    if (ethanMode && word.length < 5) continue;
+
                                     const instanceIndices = [];
                                     for (let k = 0; k < len; k++) {
                                         const charIndexInLine = i + k;
@@ -391,11 +426,15 @@
                                     if (!uniqueWordKeys.has(uniqueKey)) {
                                         uniqueWordKeys.add(uniqueKey);
                                         
-                                        // Calculate points for this specific word based on new rules
+                                        // Calculate points
                                         let points = 0;
-                                        if (word.length === 3) points = 1;
-                                        else if (word.length === 4) points = 3;
-                                        else if (word.length === 5) points = 5;
+                                        if (ethanMode) {
+                                            if (word.length === 5) points = 5;
+                                        } else {
+                                            if (word.length === 3) points = 1;
+                                            else if (word.length === 4) points = 3;
+                                            else if (word.length === 5) points = 5;
+                                        }
 
                                         foundWords.push({ word, points }); 
                                         
@@ -422,7 +461,7 @@
                 const goldMedal = cellOverlaps.every(count => count > 0);
                 foundWords.sort((a, b) => a.word.localeCompare(b.word)); 
                 return { score: totalScore, words: foundWords, overlaps: cellOverlaps, details: cellDetails, goldMedal };
-            }, [grid, dictionary]);
+            }, [grid, dictionary, ethanMode]);
 
             const initGame = (wordsSource) => {
                 if (!wordsSource || wordsSource.length === 0) return;
@@ -470,6 +509,10 @@
 
             const handleCellChange = (index, value) => {
                 if (fixedIndices.has(index) || gameState === 'scored' || isFlickering) return;
+                
+                // Reset clear confirmation if user interacts
+                if (clearConfirm) setClearConfirm(false);
+
                 const char = value.slice(-1).toUpperCase();
                 if (char && !/[A-Z]/.test(char)) return;
                 const newGrid = [...grid];
@@ -483,6 +526,8 @@
                     setActiveTooltip(activeTooltip === index ? null : index);
                 } else {
                     if (!fixedIndices.has(index) && !isFlickering) {
+                         // Reset clear confirmation if user interacts
+                         if (clearConfirm) setClearConfirm(false);
                          document.getElementById(`cell-${index}`)?.focus();
                     }
                 }
@@ -490,6 +535,10 @@
 
             const handleKeyDown = (e, index) => {
                 if (gameState === 'scored' || isFlickering) return;
+                
+                // Reset clear confirmation if user interacts
+                if (clearConfirm) setClearConfirm(false);
+
                 if (e.key === 'Backspace' && grid[index] === '') {
                     if (index > 0) { e.preventDefault(); document.getElementById(`cell-${index - 1}`)?.focus(); }
                 } else if (e.key === 'Enter') {
@@ -544,7 +593,8 @@
 
             const copyToClipboard = () => {
                 const medalText = analysis.goldMedal ? '\n🥇' : '';
-                const text = `QUEXES ${getPuzzleNumber()}\n${getFormattedDate()}\nScore: ${analysis.score}\nWords found: ${analysis.words.length}${medalText}`;
+                const title = ethanMode ? "ETHANS" : "QUEXES";
+                const text = `${title} ${getPuzzleNumber()}\n${getFormattedDate()}\nScore: ${analysis.score}\nWords found: ${analysis.words.length}${medalText}`;
                 
                 const fallbackCopy = (text) => {
                     const textArea = document.createElement("textarea");
@@ -623,7 +673,17 @@
                 <div className={`min-h-screen flex flex-col items-center justify-center p-4 selection:bg-black selection:text-white ${currentTheme.font} ${currentTheme.bg} ${currentTheme.darkBg} ${currentTheme.text} ${currentTheme.darkText}`}>
                     {/* Header */}
                     <div className={`mb-2 text-center border-b-2 ${currentTheme.border} ${currentTheme.darkBorder} pb-2 w-full max-w-md relative transition-all duration-300`}>
-                        <h1 className={`text-5xl sm:text-7xl font-normal mb-1 sm:mb-2 tracking-[0.15em] transition-opacity duration-300 ${viewMode !== 'game' ? "opacity-25" : "opacity-100"} ${currentTheme.font}`}>QUEXES</h1>
+                        <h1 className={`text-5xl sm:text-7xl font-normal mb-1 sm:mb-2 tracking-[0.15em] transition-opacity duration-300 ${viewMode !== 'game' ? "opacity-25" : "opacity-100"} ${currentTheme.font}`}>
+                            {displayTitle.split('').map((char, index) => (
+                                <span 
+                                    key={index} 
+                                    onClick={index === 2 ? toggleEthanMode : undefined} 
+                                    className={index === 2 ? "cursor-pointer" : ""}
+                                >
+                                    {char}
+                                </span>
+                            ))}
+                        </h1>
                         <div className={`flex justify-between items-center text-[10px] sm:text-xs uppercase tracking-widest border-t ${currentTheme.border} ${currentTheme.darkBorder} pt-1 mt-1 px-1 mb-1`}>
                             <span className={`transition-opacity duration-300 ${viewMode !== 'game' ? "opacity-25" : "opacity-100"}`}>No. {getPuzzleNumber()}</span>
                             <div className="flex gap-2 z-50" id="header-buttons">
@@ -698,17 +758,36 @@
                                             <h2 className={`text-xl font-bold uppercase tracking-widest mb-4 sm:mb-6 text-center border-b ${currentTheme.border} ${currentTheme.darkBorder} pb-2 w-full`}>RULES</h2>
                                             <ul className="space-y-2 sm:space-y-3 text-xs sm:text-sm leading-relaxed px-1 sm:px-2 text-left w-full">
                                                 <li className="flex flex-col gap-1">
-                                                <span className="font-bold text-[10px] uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-1 mb-1 opacity-70">02. Formation</span>
-                                                <span>Create words of 3+ letters in ANY direction (Horizontal, Vertical, Diagonal).</span>
-                                            </li>
-                                            <li className="flex flex-col gap-1">
-                                                <span className="font-bold text-[10px] uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-1 mb-1 opacity-70">03. Scoring</span>
-                                                <span>Points awarded by word length: 3-letter (1pt), 4-letter (3pts), 5-letter (5pts).</span>
-                                            </li>
-                                            <li className="flex flex-col gap-1 text-yellow-600 dark:text-yellow-400">
-                                                <span className="font-bold text-[10px] uppercase tracking-widest border-b border-yellow-200 dark:border-yellow-700 pb-1 mb-1 flex items-center gap-2 opacity-100">04. Mastery <Medal size={12}/></span>
-                                                    <span>Achieve 100% efficiency for Gold.</span>
+                                                    <span className="font-bold text-[10px] uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-1 mb-1 opacity-70">01. The Matrix</span>
+                                                    <span>Fill every empty cell to complete the grid.</span>
                                                 </li>
+                                                <li className="flex flex-col gap-1">
+                                                    <span className="font-bold text-[10px] uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-1 mb-1 opacity-70">02. Formation</span>
+                                                    <span>Create words of 3+ letters in ANY direction (Horizontal, Vertical, Diagonal).</span>
+                                                </li>
+                                                {ethanMode ? (
+                                                    <>
+                                                        <li className="flex flex-col gap-1">
+                                                            <span className="font-bold text-[10px] uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-1 mb-1 opacity-70">03. ETHAN MODE</span>
+                                                            <span>Only 5-letter words score points (5pts each). All others are ignored.</span>
+                                                        </li>
+                                                        <li className="flex flex-col gap-1 text-yellow-600 dark:text-yellow-400">
+                                                            <span className="font-bold text-[10px] uppercase tracking-widest border-b border-yellow-200 dark:border-yellow-700 pb-1 mb-1 flex items-center gap-2 opacity-100">04. Credit <Medal size={12}/></span>
+                                                            <span>Courtesy ETHAN MAGNESS</span>
+                                                        </li>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <li className="flex flex-col gap-1">
+                                                            <span className="font-bold text-[10px] uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-1 mb-1 opacity-70">03. Scoring</span>
+                                                            <span>Points awarded by word length: 3-letter (1pt), 4-letter (3pts), 5-letter (5pts).</span>
+                                                        </li>
+                                                        <li className="flex flex-col gap-1 text-yellow-600 dark:text-yellow-400">
+                                                            <span className="font-bold text-[10px] uppercase tracking-widest border-b border-yellow-200 dark:border-yellow-700 pb-1 mb-1 flex items-center gap-2 opacity-100">04. Mastery <Medal size={12}/></span>
+                                                            <span>Achieve 100% efficiency for Gold.</span>
+                                                        </li>
+                                                    </>
+                                                )}
                                             </ul>
                                         </div>
                                         <div className="w-full pt-2 border-t border-gray-200 dark:border-gray-800">
@@ -763,11 +842,14 @@
                             <div className="w-full text-center">
                                 {/* Score Legend (Revamped) */}
                                 <div className="w-full flex justify-between items-center gap-1 px-1 mb-2">
-                                    {[1, 2, 3, 4, 5].map(score => (
-                                        <div key={score} className={`flex-1 h-6 sm:h-8 flex items-center justify-center text-[10px] sm:text-xs font-bold border ${currentTheme.border} ${currentTheme.darkBorder} ${currentTheme.legendFills[score]} ${currentTheme.scoreColors[score]}`}>
-                                            {score}{score === 5 ? '+' : ''}
-                                        </div>
-                                    ))}
+                                    {(ethanMode ? ['E', 'T', 'H', 'A', 'N'] : [1, 2, 3, 4, 5]).map((item, i) => {
+                                        const scoreIndex = i + 1; // Always map to color indices 1-5
+                                        return (
+                                            <div key={i} className={`flex-1 h-6 sm:h-8 flex items-center justify-center text-[10px] sm:text-xs font-bold border ${currentTheme.border} ${currentTheme.darkBorder} ${currentTheme.legendFills[scoreIndex]} ${currentTheme.scoreColors[scoreIndex]}`}>
+                                                {item}{!ethanMode && i === 4 ? '+' : ''}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                             <div className="w-full">
