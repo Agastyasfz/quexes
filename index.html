@@ -123,7 +123,7 @@
                 "Follow @crazyfactsreallife on Instagram!", "Did you know? You're a genius!", "Absolutely brilliant!", "Grid mastery unlocked!", 
                 "Neural network: Active!", "A true wordsmith!", "Textbook perfection!", "Simply outstanding!", "Mental acuity confirmed!", 
                 "Sharp as a tack!", "Poetry in motion!", "Sublime logic!", "Architect of letters!", "System optimal!", "Pure genius!",
-                "Vive la France!", "Magnifique!", "Highly correlated to IQ!", "Top percentile!"
+                "Vive la France!", "Magnifique!", "Highly correlated to IQ!", "Top percentile!", "You're a wizard, Harry!"
             ],
             mid: [
                 "Did you know? Practice makes perfect!", "Not bad at all!", "Solid effort!", "Respectable outcome!", "Getting warmer!", 
@@ -390,7 +390,15 @@
 
                                     if (!uniqueWordKeys.has(uniqueKey)) {
                                         uniqueWordKeys.add(uniqueKey);
-                                        foundWords.push({ word, points: 0 }); 
+                                        
+                                        // Calculate points for this specific word based on new rules
+                                        let points = 0;
+                                        if (word.length === 3) points = 1;
+                                        else if (word.length === 4) points = 3;
+                                        else if (word.length === 5) points = 5;
+
+                                        foundWords.push({ word, points }); 
+                                        
                                         const dirArrow = getDirectionArrow(type, isReverse);
                                         instanceIndices.forEach(gridIdx => {
                                             cellOverlaps[gridIdx]++;
@@ -405,12 +413,11 @@
                     scanString(backwardStr, true);
                 });
 
+                // New Scoring Calculation: Sum of points from all unique words found
                 let totalScore = 0;
-                for (let i = 0; i < 25; i++) {
-                    const overlaps = cellOverlaps[i];
-                    // Linear scoring: 1 overlap = 1pt, NO CAP
-                    totalScore += overlaps;
-                }
+                foundWords.forEach(item => {
+                    totalScore += item.points;
+                });
                 
                 const goldMedal = cellOverlaps.every(count => count > 0);
                 foundWords.sort((a, b) => a.word.localeCompare(b.word)); 
@@ -691,19 +698,15 @@
                                             <h2 className={`text-xl font-bold uppercase tracking-widest mb-4 sm:mb-6 text-center border-b ${currentTheme.border} ${currentTheme.darkBorder} pb-2 w-full`}>RULES</h2>
                                             <ul className="space-y-2 sm:space-y-3 text-xs sm:text-sm leading-relaxed px-1 sm:px-2 text-left w-full">
                                                 <li className="flex flex-col gap-1">
-                                                    <span className="font-bold text-[10px] uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-1 mb-1 opacity-70">01. The Matrix</span>
-                                                    <span>Fill every empty cell to complete the grid.</span>
-                                                </li>
-                                                <li className="flex flex-col gap-1">
-                                                    <span className="font-bold text-[10px] uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-1 mb-1 opacity-70">02. Formation</span>
-                                                    <span>Create words of 3+ letters in ANY direction (Horizontal, Vertical, Diagonal).</span>
-                                                </li>
-                                                <li className="flex flex-col gap-1">
-                                                    <span className="font-bold text-[10px] uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-1 mb-1 opacity-70">03. Efficiency</span>
-                                                    <span>Tiles score 1 pt for every word they are part of (no limit).</span>
-                                                </li>
-                                                <li className="flex flex-col gap-1 text-yellow-600 dark:text-yellow-400">
-                                                    <span className="font-bold text-[10px] uppercase tracking-widest border-b border-yellow-200 dark:border-yellow-700 pb-1 mb-1 flex items-center gap-2 opacity-100">04. Mastery <Medal size={12}/></span>
+                                                <span className="font-bold text-[10px] uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-1 mb-1 opacity-70">02. Formation</span>
+                                                <span>Create words of 3+ letters in ANY direction (Horizontal, Vertical, Diagonal).</span>
+                                            </li>
+                                            <li className="flex flex-col gap-1">
+                                                <span className="font-bold text-[10px] uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-1 mb-1 opacity-70">03. Scoring</span>
+                                                <span>Points awarded by word length: 3-letter (1pt), 4-letter (3pts), 5-letter (5pts).</span>
+                                            </li>
+                                            <li className="flex flex-col gap-1 text-yellow-600 dark:text-yellow-400">
+                                                <span className="font-bold text-[10px] uppercase tracking-widest border-b border-yellow-200 dark:border-yellow-700 pb-1 mb-1 flex items-center gap-2 opacity-100">04. Mastery <Medal size={12}/></span>
                                                     <span>Achieve 100% efficiency for Gold.</span>
                                                 </li>
                                             </ul>
