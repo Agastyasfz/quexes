@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>QUEXES</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -88,7 +88,7 @@
         .dark .custom-scroll::-webkit-scrollbar-thumb { background: #475569; }
     </style>
 </head>
-<body class="transition-colors duration-500 min-h-screen flex flex-col items-center justify-center selection:bg-black selection:text-white">
+<body class="transition-colors duration-500 h-[100dvh] overflow-hidden flex flex-col items-center justify-center selection:bg-black selection:text-white touch-none">
     <div id="root"></div>
 
     <script type="text/babel" data-presets="react,env">
@@ -298,7 +298,7 @@
                 else document.documentElement.classList.remove('dark');
                 
                 // Also update body classes for background
-                document.body.className = `transition-colors duration-500 min-h-screen flex flex-col items-center justify-center selection:bg-black selection:text-white ${currentTheme.bg} ${currentTheme.darkBg} ${currentTheme.text} ${currentTheme.darkText} ${currentTheme.font}`;
+                document.body.className = `transition-colors duration-500 h-[100dvh] overflow-hidden flex flex-col items-center justify-center selection:bg-black selection:text-white touch-none ${currentTheme.bg} ${currentTheme.darkBg} ${currentTheme.text} ${currentTheme.darkText} ${currentTheme.font}`;
             }, [darkMode, currentTheme]);
 
             // Save Preferences
@@ -600,9 +600,9 @@
             return (
                 <div className={`min-h-screen flex flex-col items-center justify-center p-4 selection:bg-black selection:text-white ${currentTheme.font} ${currentTheme.bg} ${currentTheme.darkBg} ${currentTheme.text} ${currentTheme.darkText}`}>
                     {/* Header */}
-                    <div className={`mb-4 text-center border-b-2 ${currentTheme.border} ${currentTheme.darkBorder} pb-4 w-full max-w-md relative transition-all duration-300`}>
-                        <h1 className={`text-7xl font-normal mb-2 tracking-[0.15em] transition-opacity duration-300 ${viewMode !== 'game' ? "opacity-25" : "opacity-100"} ${currentTheme.font}`}>QUEXES</h1>
-                        <div className={`flex justify-between items-center text-[10px] uppercase tracking-widest border-t ${currentTheme.border} ${currentTheme.darkBorder} pt-1 mt-1 px-1 mb-1`}>
+                    <div className={`mb-2 text-center border-b-2 ${currentTheme.border} ${currentTheme.darkBorder} pb-2 w-full max-w-md relative transition-all duration-300`}>
+                        <h1 className={`text-5xl sm:text-7xl font-normal mb-1 sm:mb-2 tracking-[0.15em] transition-opacity duration-300 ${viewMode !== 'game' ? "opacity-25" : "opacity-100"} ${currentTheme.font}`}>QUEXES</h1>
+                        <div className={`flex justify-between items-center text-[10px] sm:text-xs uppercase tracking-widest border-t ${currentTheme.border} ${currentTheme.darkBorder} pt-1 mt-1 px-1 mb-1`}>
                             <span className={`transition-opacity duration-300 ${viewMode !== 'game' ? "opacity-25" : "opacity-100"}`}>No. {getPuzzleNumber()}</span>
                             <div className="flex gap-2 z-50" id="header-buttons">
                                 {viewMode !== 'game' ? (
@@ -629,7 +629,7 @@
                     </div>
 
                     {/* SMART COMMENTARY AREA */}
-                    <div className="w-full max-w-md h-6 mb-2 flex items-center justify-center">
+                    <div className="w-full max-w-md h-6 mb-1 flex items-center justify-center">
                         {gameState === 'scored' && !isFlickering && (
                             <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                                 <p className={`text-xs italic font-bold text-center opacity-80 ${currentTheme.text} ${currentTheme.darkText}`}>"{finalMessage}"</p>
@@ -638,7 +638,7 @@
                     </div>
 
                     <div className="relative w-full max-w-md flex flex-col items-center">
-                        <div ref={containerRef} className={`relative p-8 border ${currentTheme.border} ${currentTheme.darkBorder} shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.3)] ${themeKey === 'terminal' ? 'bg-white dark:bg-black' : (themeKey === 'heatmap' ? 'bg-solar-white dark:bg-zinc-900' : 'bg-white dark:bg-zinc-900')} mb-8 transition-all duration-300 w-full flex flex-col justify-center items-center`} style={{ minHeight: '400px' }}>
+                        <div ref={containerRef} className={`relative p-4 sm:p-8 border ${currentTheme.border} ${currentTheme.darkBorder} shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.3)] ${themeKey === 'terminal' ? 'bg-white dark:bg-black' : (themeKey === 'heatmap' ? 'bg-solar-white dark:bg-zinc-900' : 'bg-white dark:bg-zinc-900')} mb-2 sm:mb-4 transition-all duration-300 w-full flex flex-col justify-center items-center`} style={{ minHeight: 'auto' }}>
                             {/* Corner Accents */}
                             <div className={`absolute top-0 left-0 w-2 h-2 ${themeKey === 'terminal' ? 'bg-green-800 dark:bg-green-500' : 'bg-black dark:bg-white'}`}></div>
                             <div className={`absolute top-0 right-0 w-2 h-2 ${themeKey === 'terminal' ? 'bg-green-800 dark:bg-green-500' : 'bg-black dark:bg-white'}`}></div>
@@ -646,7 +646,7 @@
                             <div className={`absolute bottom-0 right-0 w-2 h-2 ${themeKey === 'terminal' ? 'bg-green-800 dark:bg-green-500' : 'bg-black dark:bg-white'}`}></div>
 
                             {/* --- GAME GRID (ALWAYS RENDERED) --- */}
-                            <div className="grid grid-cols-5 gap-4 sm:gap-6 relative">
+                            <div className="grid grid-cols-5 gap-3 sm:gap-6 relative">
                                 {grid.map((char, i) => {
                                     const styles = getCellStyles(i);
                                     return (
@@ -670,10 +670,10 @@
 
                             {/* --- RULES OVERLAY --- */}
                             {viewMode === 'rules' && (
-                                <div className={`absolute inset-0 z-40 p-8 flex flex-col items-center justify-between animate-in fade-in zoom-in duration-200 ${themeKey === 'terminal' ? 'bg-white dark:bg-black text-green-800 dark:text-green-500 pb-16 pt-2' : (themeKey === 'heatmap' ? 'bg-solar-white dark:bg-zinc-900 text-slate-800 dark:text-slate-100' : 'bg-white dark:bg-zinc-900 text-black dark:text-zinc-100')}`}>
+                                <div className={`absolute inset-0 z-40 p-4 sm:p-8 flex flex-col items-center justify-between animate-in fade-in zoom-in duration-200 ${themeKey === 'terminal' ? 'bg-white dark:bg-black text-green-800 dark:text-green-500 pb-12 sm:pb-16 pt-2' : (themeKey === 'heatmap' ? 'bg-solar-white dark:bg-zinc-900 text-slate-800 dark:text-slate-100' : 'bg-white dark:bg-zinc-900 text-black dark:text-zinc-100')}`}>
                                     <div className="w-full">
-                                        <h2 className={`text-xl font-bold uppercase tracking-widest mb-6 text-center border-b ${currentTheme.border} ${currentTheme.darkBorder} pb-2`}>RULES</h2>
-                                        <ul className="space-y-3 text-sm leading-relaxed px-2 text-left w-full">
+                                        <h2 className={`text-xl font-bold uppercase tracking-widest mb-4 sm:mb-6 text-center border-b ${currentTheme.border} ${currentTheme.darkBorder} pb-2`}>RULES</h2>
+                                        <ul className="space-y-2 sm:space-y-3 text-xs sm:text-sm leading-relaxed px-1 sm:px-2 text-left w-full">
                                             <li className="flex flex-col gap-1">
                                                 <span className="font-bold text-[10px] uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-1 mb-1 opacity-70">01. The Matrix</span>
                                                 <span>Fill every empty cell to complete the grid.</span>
@@ -692,7 +692,7 @@
                                             </li>
                                         </ul>
                                     </div>
-                                    <div className="w-full mt-4 pt-2 border-t border-gray-200 dark:border-gray-800">
+                                    <div className="w-full mt-2 sm:mt-4 pt-2 border-t border-gray-200 dark:border-gray-800">
                                         <button onClick={() => setViewMode('settings')} className={`w-full py-2 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest border ${currentTheme.border} ${currentTheme.darkBorder} hover:opacity-60 transition-opacity`}>
                                             <SettingsIcon size={14} /> SYSTEM
                                         </button>
@@ -702,26 +702,26 @@
 
                             {/* --- SETTINGS OVERLAY --- */}
                             {viewMode === 'settings' && (
-                                <div className={`absolute inset-0 z-40 p-8 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-200 ${themeKey === 'terminal' ? 'bg-white dark:bg-black text-green-800 dark:text-green-500' : (themeKey === 'heatmap' ? 'bg-solar-white dark:bg-zinc-900 text-slate-800 dark:text-slate-100' : 'bg-white dark:bg-zinc-900 text-black dark:text-zinc-100')}`}>
-                                    <h2 className={`text-xl font-bold uppercase tracking-widest mb-6 text-center border-b ${currentTheme.border} ${currentTheme.darkBorder} pb-2`}>SYSTEM</h2>
+                                <div className={`absolute inset-0 z-40 p-4 sm:p-8 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-200 ${themeKey === 'terminal' ? 'bg-white dark:bg-black text-green-800 dark:text-green-500' : (themeKey === 'heatmap' ? 'bg-solar-white dark:bg-zinc-900 text-slate-800 dark:text-slate-100' : 'bg-white dark:bg-zinc-900 text-black dark:text-zinc-100')}`}>
+                                    <h2 className={`text-xl font-bold uppercase tracking-widest mb-4 sm:mb-6 text-center border-b ${currentTheme.border} ${currentTheme.darkBorder} pb-2`}>SYSTEM</h2>
                                     
-                                    <div className="w-full max-w-xs space-y-6">
-                                        <div className="flex flex-col gap-3">
+                                    <div className="w-full max-w-xs space-y-4 sm:space-y-6">
+                                        <div className="flex flex-col gap-2 sm:gap-3">
                                             <span className="text-xs font-bold uppercase tracking-widest opacity-70">Visual Mode</span>
-                                            <button onClick={() => updateDarkMode(!darkMode)} className={`flex items-center justify-between w-full p-3 border ${currentTheme.border} ${currentTheme.darkBorder} hover:opacity-70 transition-opacity`}>
-                                                <span className="uppercase tracking-widest text-sm">{darkMode ? 'Dark Mode' : 'Light Mode'}</span>
+                                            <button onClick={() => updateDarkMode(!darkMode)} className={`flex items-center justify-between w-full p-2 sm:p-3 border ${currentTheme.border} ${currentTheme.darkBorder} hover:opacity-70 transition-opacity`}>
+                                                <span className="uppercase tracking-widest text-xs sm:text-sm">{darkMode ? 'Dark Mode' : 'Light Mode'}</span>
                                                 {darkMode ? <Moon size={16} /> : <Sun size={16} />}
                                             </button>
                                         </div>
 
-                                        <div className="flex flex-col gap-3">
+                                        <div className="flex flex-col gap-2 sm:gap-3">
                                             <span className="text-xs font-bold uppercase tracking-widest opacity-70">System Theme</span>
                                             <div className="grid grid-cols-1 gap-2">
                                                 {Object.entries(THEMES).map(([key, theme]) => (
                                                     <button 
                                                         key={key}
                                                         onClick={() => updateTheme(key)}
-                                                        className={`p-3 border ${currentTheme.border} ${currentTheme.darkBorder} text-left uppercase tracking-widest text-sm flex justify-between items-center transition-all
+                                                        className={`p-2 sm:p-3 border ${currentTheme.border} ${currentTheme.darkBorder} text-left uppercase tracking-widest text-xs sm:text-sm flex justify-between items-center transition-all
                                                             ${themeKey === key ? (darkMode ? 'bg-zinc-100 text-black' : 'bg-black text-white') : 'hover:opacity-70'}
                                                             ${themeKey === key && key === 'terminal' && !darkMode ? '!bg-green-800 !text-white' : ''}
                                                             ${themeKey === key && key === 'terminal' && darkMode ? '!bg-green-500 !text-black' : ''}
@@ -739,12 +739,12 @@
                         </div>
 
                         {/* Footer / Controls */}
-                        <div className={`w-full flex flex-col items-center gap-4 max-w-md mx-auto transition-opacity duration-300 ${viewMode !== 'game' ? "opacity-25 pointer-events-none" : "opacity-100"}`}>
+                        <div className={`w-full flex flex-col items-center gap-2 sm:gap-4 max-w-md mx-auto transition-opacity duration-300 ${viewMode !== 'game' ? "opacity-25 pointer-events-none" : "opacity-100"}`}>
                             <div className="w-full text-center">
                                 {/* Score Legend (Revamped) */}
                                 <div className="w-full flex justify-between items-center gap-1 px-1 mb-2">
                                     {[1, 2, 3, 4, 5].map(score => (
-                                        <div key={score} className={`flex-1 h-8 flex items-center justify-center text-xs font-bold border ${currentTheme.border} ${currentTheme.darkBorder} ${currentTheme.legendFills[score]} ${currentTheme.scoreColors[score]}`}>
+                                        <div key={score} className={`flex-1 h-6 sm:h-8 flex items-center justify-center text-[10px] sm:text-xs font-bold border ${currentTheme.border} ${currentTheme.darkBorder} ${currentTheme.legendFills[score]} ${currentTheme.scoreColors[score]}`}>
                                             {score}{score === 5 ? '+' : ''}
                                         </div>
                                     ))}
@@ -762,7 +762,7 @@
                                         </button>
                                     </div>
                                 ) : (
-                                    <div className="w-full flex flex-col gap-3">
+                                    <div className="w-full flex flex-col gap-2 sm:gap-3">
                                         <div className={`border ${currentTheme.border} ${currentTheme.darkBorder} p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.3)] relative overflow-hidden ${themeKey === 'terminal' ? 'bg-white dark:bg-black' : (themeKey === 'heatmap' ? 'bg-solar-white dark:bg-zinc-900' : 'bg-white dark:bg-zinc-900')}`}>
                                             <div className={`flex justify-between items-center mb-4 border-b ${currentTheme.border} ${currentTheme.darkBorder} pb-2`}>
                                                 <span className="text-xs uppercase tracking-widest font-bold">Analysis Report</span>
