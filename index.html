@@ -7,6 +7,20 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- Configure Tailwind for Class-based Dark Mode -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'solar-white': '#fff8f0', // Warmer off-white for heatmap
+                    }
+                }
+            }
+        }
+    </script>
+    
     <!-- React & ReactDOM (UMD - Global Variables) -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -16,34 +30,69 @@
     
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;0,900;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
     
     <style>
         body { font-family: 'Merriweather', serif; }
-        /* CMYK Flicker Animations */
-        @keyframes cycle-k {
-            0% { color: #000000; } 20% { color: #00bcd4; } 40% { color: #d946ef; } 60% { color: #eab308; } 80% { color: #84cc16; } 100% { color: #000000; }
+        .font-serif { font-family: 'Merriweather', serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .font-sans { font-family: 'Outfit', sans-serif; }
+        
+        /* Animations */
+        .loading-dots:after {
+            content: '.';
+            animation: dots 1.5s steps(5, end) infinite;
         }
-        @keyframes cycle-c {
-            0% { color: #00bcd4; } 20% { color: #d946ef; } 40% { color: #eab308; } 60% { color: #84cc16; } 80% { color: #000000; } 100% { color: #00bcd4; }
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60% { content: '...'; }
+            80%, 100% { content: ''; }
         }
-        @keyframes cycle-m {
-            0% { color: #d946ef; } 20% { color: #eab308; } 40% { color: #84cc16; } 60% { color: #000000; } 80% { color: #00bcd4; } 100% { color: #d946ef; }
+
+        /* Newspaper Parade: Black -> Red -> Yellow -> Green -> Blue */
+        @keyframes cycle-news { 
+            0% { color: #000; } 
+            25% { color: #dc2626; } 
+            50% { color: #eab308; } 
+            75% { color: #16a34a; } 
+            100% { color: #2563eb; } 
         }
-        @keyframes cycle-y {
-            0% { color: #eab308; } 20% { color: #84cc16; } 40% { color: #000000; } 60% { color: #00bcd4; } 80% { color: #d946ef; } 100% { color: #eab308; }
+        
+        /* Heatmap Parade: Purple -> Red -> Orange -> Yellow -> Blue (Flame) */
+        @keyframes cycle-heat { 
+            0% { color: #9333ea; } 
+            25% { color: #dc2626; } 
+            50% { color: #f97316; } 
+            75% { color: #facc15; } 
+            100% { color: #38bdf8; } 
         }
-        .anim-k { animation: cycle-k 1.0s steps(1, end) infinite; }
-        .anim-c { animation: cycle-c 1.0s steps(1, end) infinite; }
-        .anim-m { animation: cycle-m 1.0s steps(1, end) infinite; }
-        .anim-y { animation: cycle-y 1.0s steps(1, end) infinite; }
+        
+        /* Terminal Parade */
+        @keyframes cycle-term { 
+            0% { color: #22c55e; } 
+            50% { color: #ffffff; } 
+            100% { color: #22c55e; } 
+        }
+
+        /* Faster transitions */
+        .anim-classic { animation-name: cycle-news; animation-iteration-count: infinite; animation-timing-function: steps(1, end); }
+        .anim-heat { animation-name: cycle-heat; animation-iteration-count: infinite; animation-timing-function: linear; }
+        .anim-term { animation-name: cycle-term; animation-iteration-count: infinite; animation-timing-function: steps(1, end); }
+
+        /* Custom Scrollbar */
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+        .dark .custom-scroll::-webkit-scrollbar-thumb { background: #475569; }
     </style>
 </head>
-<body class="bg-white text-black min-h-screen flex flex-col items-center justify-center selection:bg-black selection:text-white">
+<body class="transition-colors duration-500 min-h-screen flex flex-col items-center justify-center selection:bg-black selection:text-white">
     <div id="root"></div>
 
     <script type="text/babel" data-presets="react,env">
-        // Global React Deconstruction
-        const { useState, useEffect, useMemo } = React;
+        const { useState, useEffect, useMemo, useRef } = React;
         const { createRoot } = ReactDOM;
 
         // --- ICONS ---
@@ -53,28 +102,88 @@
             </svg>
         );
 
-        const Clipboard = (props) => (
-            <IconBase {...props}><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></IconBase>
-        );
-        const Check = (props) => (
-            <IconBase {...props}><path d="M20 6 9 17l-5-5"/></IconBase>
-        );
-        const HelpCircle = (props) => (
-            <IconBase {...props}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></IconBase>
-        );
-        const X = (props) => (
-            <IconBase {...props}><path d="M18 6 6 18"/><path d="m6 6 18 18"/></IconBase>
-        );
-        const Medal = (props) => (
-            <IconBase {...props}><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"/><path d="M11 12 5.12 2.2"/><path d="m13 12 5.88-9.8"/><path d="M8 7h8"/><circle cx="12" cy="17" r="5"/><path d="M12 18v-2h-.5"/></IconBase>
-        );
+        const Clipboard = (props) => <IconBase {...props}><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></IconBase>;
+        const Check = (props) => <IconBase {...props}><path d="M20 6 9 17l-5-5"/></IconBase>;
+        const HelpCircle = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></IconBase>;
+        const X = (props) => <IconBase {...props}><path d="M18 6 6 18"/><path d="m6 6 18 18"/></IconBase>;
+        const SettingsIcon = (props) => <IconBase {...props}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></IconBase>;
+        const Medal = (props) => <IconBase {...props}><path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"/><path d="M11 12 5.12 2.2"/><path d="m13 12 5.88-9.8"/><path d="M8 7h8"/><circle cx="12" cy="17" r="5"/><path d="M12 18v-2h-.5"/></IconBase>;
+        const Moon = (props) => <IconBase {...props}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></IconBase>;
+        const Sun = (props) => <IconBase {...props}><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></IconBase>;
+        const ChevronLeft = (props) => <IconBase {...props}><path d="m15 18-6-6 6-6"/></IconBase>;
 
-        // --- DICTIONARY DATA ---
-        const RAW_WORD_LIST = `the bosom ale all creed crate alas tears games cough and for are but not you all any can had has him his how man new now old one out say she see two way who boy did let put say too use dad mom cat dog bat car bus bed box cup jar key log map pan pen pie pig pin pot rag rat rug sun tan tin toe top tub van vet web wig yak zip ace aim air ant ape arc arm art ash ask awe axe bad bag bar bay bee bet bib bid big bin bit bog bow bud bug bum bun bus cab cad cam cap cob cod cog con cop cot cow coy cry cub cue cup cut dab dam day den dew die dig dim din dip doe dot dry dub dud due dug dye ear eat ebb eel egg ego elf elk elm end era eve eye fan far fat fax fed few fib fig fin fit fix flu fly fob foe fog fop fox fry fun fur gag gal gap gas gel gem get gig gin god goo got gum gun gut gym had hag ham hat hay hem hen her hew hex hey hid hip hit hoe hog hop hot hub hue hug hum hut ice ill ink inn ion ire ivy jab jam jar jaw jay jet jig job jog jot joy jug jut keg kid kin kit lab lad lag lap law lax lay lea led lee leg let lid lie lip lit lob log lop lot low lug lux lye mad man map mat maw may men met mew mid mix mob mod mom moo mop mow mud mug mum nag nap nay net new nil nip nod nor not now nut oak oar oat odd ode off oil old one orb ore our out owe owl own pad pal pan par pat paw pay pea peg pen pep pet pew pie pig pin pit ply pod pop pot pox pro pry pub pug pun pup pus put rag ram ran rap rat raw ray red rib rid rig rim rip rob rod roe rot row rub rue rug rum run rut rye sac sad sag sal sap sat saw say sea see set sew sex she shy sin sip sir sit six ski sky sly sob sod son sop sow soy spa spy sty sue sum sun sup tab tag tan tap tar tax tea tee ten the thy tic tie tin tip toe tog ton top tot tow toy try tub tug tun two urn use van vat vet via vie vow wag wan war wax way web wed wee wet who wig win wit woe won woo wow wry yak yam yap yea yes yet yew you zip zoo able acid aged agog also area army away baby back ball band bank base bath bear beat beer bell belt bend best bird bite blow blue boat body bond bone book boom born boss both bowl bulk burn bush busy cake call calm camp card care case cash cast chat chef chip city club coal coat code cold come cook cool cope copy cord core corn cost crew crop dark data date dawn dead deal dear debt deck deep deer deny desk dial diet dirt disc dish disk door dose down drag draw drop drug drum duck dust duty earn ease east easy edge edit else envy even ever evil exit face fact fade fail fair fall fame farm fast fate fear feed feel feet fell file fill film find fine fire firm fish five flag flat flaw flee flew flip flow foam folk food foot ford form fort four free frog from fuel full fund gain game gang gap gate gear gene gift girl give glad goal goat gold golf gone good grab gray grew grey grid grin grip grow hair half hall hand hang hard hate have head heal hear heat help herb here hero high hill hire hold hole holy home hope host hour huge hung hunt hurt idea inch iron item jack jail jazz jeep join joke jump jury just keen keep kept kick kill kind king kiss knee knew knit knot know lack lady laid lake land lane last late lava lead leaf lean leap left lend lens less levy life lift like limb lime line link lion list live load loan lock loft logo long look loop lord lose loss lost loud love luck lung lure lust maid mail main make male mall many mark mask mass mate math meal mean meat meet melt menu mesh mess mild mile milk mill mind mine mise miss mist mix mode mold mood moon more moss most move much must name near neat neck need nest news next nice night nine noon norm nose note noun nova null numb nurse oath obey odds okay once only onto open oral pink pipe plan play plot plug plus poem poet poll pond pool poor port pose post pour pray prep prey pull pump pure push quit quiz race rack rage raid rail rain rake rank rate rave read real rear rely rent rest rice rich ride ring riot rise risk road roar rock role roll roof room root rope rose rule rush rust safe said sail sake sale salt same sand save scan scar seal seat seed seek seem seen self sell send sent set ship shoe shop shot show shut sick side sign silk silo sing sink site size skin skip slab slam slap slat sled slip slit slot slow slum snap snow soak soap soar sock soda sofa soft soil sold sole solo some song soon sore sort soul soup sour span spin spit spot star stay stem step stew stir stop stud such suck suit sure swim tail take tale talk tall tank tape task team tear tell tent term test text than that them then they thin this thou tide tidy tied tier tile tilt time tiny tire toad toll tone tool tour town trap tray tree trek trim trip true tube tune turn twin type unit upon urge used user vary vast very vest view visa void volt vote wage wait wake walk wall want ward warm warn wash wasp wave weak wear weed week weep well went were west what when whom wide wife wild will wind wine wing wipe wire wise wish with wolf wood wool word work worm worn wrap yard yarn year yell yoga zero zone about above abuse actor acute admit adopt adult after again agent agree ahead alarm album alert alien alike alive allow alone along alter among anger angle angry ankle apple apply arena argue arise array arrow aside asset audio audit avoid award aware awful badge baker basic basis beach beard beast began begin begun being belly below bench berry birth black blade blame blank blast blend blind block blood board boast boost booth booty bored borne bound bowel boxer brain brake brand brass brave bread break breed brick bride brief bring broad broke brown brush build built bunch burst buyer cabin cable camel canal candy canoe canon cargo carry carve catch cause cease chain chair chalk chaos charm chart chase cheap cheat check cheek cheer chest chief child chill china chips chord chunk churn cigar civic civil claim clamp class clean clear clerk click cliff climb cloak clock close cloth cloud clown coach coast cocoa count court cover craft crash crazy cream creek creep crest crew crowd crown crude cruel crush crust curve cycle daily dairy dance dated dealt death debug debut decay decor delay delta demon dense depth derby devil diary digit dirty disco ditch diver dizzy doing donor doubt dozen draft drain drama drank dream dress drift drill drink drive drone drove drunk dryly ducky dummy dusty duvet dwell dying eager eagle early earth easel eaten eater eight eject elbow elder elect elite empty enact ended enemy enjoy enter entry envoy equal equip erase error erupt essay ether ethic event every exact exalt excel exert exile exist extra eyelet fable facet faint fairy faith false fancy farms fatal fault favor feast fence ferry fetch fever fiber field fiend fifty fight filed filet filly filth final first fishy fixit flame flash flask fleet flesh fling flint flirt float flock flood floor flora flour flown fluid flush flute focal focus foggy folks force forge forgo forty forum found foyer frail frame fraud freak fresh friar fried frill frisk frock front frost froth frown fruit fudge fugue fully fungi funky funny furry fury fuse fusion fuzzy gaily gains galaxy gamer games gamma gamut gangs gaped garage gases gasp gates gauge gaunt gauze gavel gawk gayly gazer gears gecko geeky geese genie genre ghost giant giddy gifts gipsy girls girth given giver glade gland glare glass glaze gleam glean glide glint gloat globe gloom glory gloss glove glow glued gluey gnarl gnash gnat gnaw gnome going golly goner good goofy goose gorge gouge gourd grace grade graft grail grain gram grand grant grape graph grasp grass grate grave gravy graze great greed green greet grid grief grill grim grin grind grip groan groin groom gross group grove growl grown growth gruel gruff grunt guard guess guest guide guild guile guilt guise guitar gulf gully gumbo gummy guppy gusty gutsy gypsy habit hack haft hail hair hairy half hall halo halt hammy hand handy hang hank happy hard hardy hare harem hark harm harp harry harsh hart hash hasp haste hasty hatch hate haul haunt haven havoc hawk hay hazel hazy head heal heap hear heart heat heavy hedge heed heel heft heir held helix hello helm help hence herb herd here hero hers high hike hill hilt hind hinge hint hippo hire hiss hist hitch hive hoard hobby hobo hoist hold hole holly holy home hone hood hoof hook hoop hoot hope horde horn horse hose host hot hotel hound hour house hover howdy howl huge hula hulk hull hum human humid hump humus hunch hung hunk hunt hurl hurry hurt hush husk husky hussy hutch hydra hydro hyena hymn hype icily icing icon idea idle idol idyll igloo image impel imply inbox incur index inept inert infer ingot inject ink inlay inlet inner input inset inter into intro inure invent invert invite irate iron irony islet issue itch item ivory jack jaded jail jamb jane jazz jean jeep jeer jelly jerk jest jet jewel jiffy jilt jinx jive job jock join joke jolt josh joy judge juice juicy jump junk juror jury just jute kale karma kayak kebab keel keen keep kegs kelp kept kerb keys kick kid kill kiln kilo kilt kin kind king kink kiss kit kite kiwi knack knave knead knee knell knelt knew knick knife knit knob knock knot know koala label labor lace lack lad lady lag laid lain lair lake lamb lame lamp lance land lane lank lapel lapse large lark larva laser lash lass last latch late lathe laud laugh lava lawn lawyer lay layer lazy lead leaf leak lean leap learn lease leash least leave ledge leech left leg lemon lend lens lent less lest let level lever levy liar libel lick lid lie life lift light like lilac limb lime limit limp line ling link lint lion lip list lit live load loaf loan lobby lobe local lock llocust lodge loft log logic loin lone long look loom loop loose loot lord lorry lose loss lost lot loud louse love low loyal luck lucky lull lump lunar lunch lung lure lurk lush lust lute luxe lying lymph lynch lyric mace macho macro madly mafia magic maid mail main maize major make male mall malt mama mammal man manage mane mange mango mania manic manor many map maple mar march mare mark market marry marsh mart mash mask mass mast mat match mate math maul maw maxi may maybe mayor maze mead meal mean meat medal media medic meet meld melt meme memo men mend menu meow mercy mere merge merit merry mesh mess metal mete meter method metro mew micro mid midst miff might mild mile milk mill mimic mince mind mine mini mink minor mint minus minute mire mirth mises miss mist mite mitt mix moan moat mob mock mode model modem mogul moist mold mole mom money monk month mood moon moor moose mop mope moral more morn morph moss most moth motion motive motor motto mound mount mourn mouse mouth move movie mow much muck mucus mud muff mug mulch mule multi mum mummy mural murder murky muse mush music musk must mute mutter mutton myth nabob nacho nag nail naive naked name nanny nap nape narrow nasty natal nation native nature naval navel navy near neat neck need neon nerd nerve nest net never new news next nice niche nick niece night nill nine ninth nip noble nod node noise noisy nomad none nook noon nope nor norm north nose not note nothing notice noun novel now nub nude nudge null numb nun nurse nut nylon nymph oak oar oasis oath oats obey object oboe ocean octet odd odds odor off offer often ogre oil oily okay okra old olive omen omit once one onion only onset onto onus onyx ooze opal open opera opium opt optic oral orb orbit order ore organ other otter ouch ought ounce our out outer outdo outfit oval oven over owl own owner oxide ozone pace pack pact pad page paid pail pain pair pal pale palm pan panel panic pant papa paper parade parcel parch park parry parse part party pass past pat patch path patio pause pave paw pawn pay pay peace peach peak pear pearl peat peck pedal peek peel peep peer peg pen pelt pencil penny people pepper perch peril perk perm pest pet petal petty phase phone photo piano pick pie piece pier pig pike pile pill pilot pin pinch pine ping pink pint pipe pit pitch pith pity pivot pixel pizza place plaid plain plait plan plane plank plant plate play plea plead pleat pled plot plow pluck plug plum plump plus plush ply poach pod poem poet point poise poke polar pole police poll polo pond pony pool poor pop pope poppy porch pore pork port pose posh post posy pot pouch pound pour pout powder power pox pram prank pray prep press prey price prick pride prime primp print prior prism prize probe prone prong proof prop prose proud prove prowl proxy prune pry pub public puff pull pulp pulse pump punch punk pupil puppet puppy pure purge purr purse push put putty pygmy pylon pyre quad quail quake qualm quart queen queer quell query quest queue quick quiet quill quilt quirk quit quite quota quote rabbit rabid race rack radar radio raft rage raid rail rain raise rake rally ram ranch range rank rant rap rape rapid rare rash rasp rat rate ratio rattle rave raven raw ray razor reach react read ready real realm ream reap rear rebel rebut recall recap recur red reed reef reel refer refit regal reign rein reject relax relay relic rely remain remit remix rend renew rent repay repel reply report reset resin rest retch retro retry return reuse revel revile review rhino rhyme rhythm rib ribbon rice rich rid ride ridge rife riff rifle rift rig right rigid rile rim rind ring rink riot rip ripe rise risk rite ritual rival river road roam roar roast rob robe robot rock rocket rod rode rogue role roll romp roof rook room roost root rope rose rosy rot rotate rotor rotten rouge rough round route rove row royal rub ruby rudder rude rue ruff rug ruin rule rumble rumor rump run rung runt rural ruse rush rusk rust rusty rut sack sad saddle safe saga sage said sail saint sake salad sale sally salon salt same sample sand sane sash sat satin satire sauce save savor saw say scab scald scale scalp scam scan scar scare scarf scene scent school scoff scold scoop scoot scope score scorn scour scout scowl scrap scream screen screw script scroll scrub scuba scuff scull scum sea seal seam sear seat second secret sect sedan sedate seed seek seem seen seep seer self sell semi send sense sent sentry sepia sequel serf serial series sermon serum serve set settle seven sever sew sewer sex shack shade shadow shaft shag shake shaky shale shall sham shame shank shape share shark sharp shave shaw she sheaf shear shed sheen sheep sheer sheet shelf shell shied shift shine shiny ship shirt shiver shoal shock shoe shone shoo shoot shop shore short shot shout shove show shred shrew shrill shrimp shrink shrub shrug shuck shun shunt shut shy sick side siege sift sigh sight sign silk sill silly silo silt silver simian simple sin since sinew sing sink sip sir sire siren sister sit site six size skate skew skid skier skill skim skin skip skirt skit skulk skull skunk sky slab slack slag slain slam slang slant slap slash slat slate slave slay sled sleek sleep sleet sleeve slew slice slick slid slide slight slim slime sling slip slit slob sloe slog slope slosh slot slow slug slum slump slur slush sly smack small smart smash smear smell smelt smile smirk smite smith smock smog smoke smooth snack snag snail snake snap snare snarl sneak sneer sneeze sniff snip snob snoop snore snort snout snow snub snuff snug soak soap soar sob sober sock soda sofa soft soil sol solar sold sole solid solo solve some sonar song sonic soon soot sore sort soul sound soup sour source south sow space spade span spare spark spasm spat spawn speak spear speck speed spell spelt spend sperm spew spice spicy spider spike spill spin spine spire spirit spit spite splash splat split spoil spoke sponge spook spool spoon spore sport spot spout spray spread spree sprig spring sprint sprout spun spur spurn spurt spy squad squat squaw squeak squint squirm squirt stab stack staff stag stage stain stair stake stale stalk stall stamp stand stank star stare stark start stash state stave stay steak steal steam steed steel steep steer stem step stern stew stick stiff still stilt sting stink stint stir stitch stock stoic stoke stole stomp stone stood stool stoop stop store stork storm story stout stove stow strap straw stray streak stream street stress stretch strict stride strife strike string strip strive stroke stroll strong struck strum strut stub stuck stud study stuff stump stun stunt style suave suck sudan suede sugar suit sulk sullen sum sumo sun sung sunk sunny super supper supple supply sure surf surge surly surmise sushi swab swamp swan swap swarm sway swear sweat sweep sweet swell swept swift swim swine swing swirl swish switch sword sworn sycamore sync syrup system table tack taco tact tad taffy tag tail taint take tale talk tall talon tame tan tang tank tap tape taper tapir tar tardy target tariff tarn tart task taste tat tatter tattoo taught taunt taut tax taxi tea teach teak team tear tease teat tech teen teeth tell temper temple tempo tempt ten tenant tend tenet tennis tenor tense tent tenth term tern terra terse test text than thank that thaw the thee their them theme then there these they thick thief thigh thin thing think third thirst this thorn those thou though thrash thread threat three threw thrill thrive throat throb throne throng throw thrum thud thug thumb thump thunder thus thyme tiara tick ticket tide tidy tie tier tiger tight tile till tilt time timid tin tinder tine tinge tint tiny tip tire titan title toad toast today toddle toe toffee toga toil token told toll tom tomb tome ton tone tongs tongue tonic too took tool toot tooth top topic torch torso tort toss tot total tote touch tough tour tow towel tower town toxic toy trace track tract trade trail train trait tram tramp trance trap trash travel tray tread treat tree trek trend trial tribe trick tried trill trim trio trip trite troll troop trot trout truce truck true trump trunk trust truth try tub tuba tube tuck tuft tug tulip tumble tuna tune tunic tunnel turban turf turkey turn turtle tusk tutor tux twain tweak tweed tweet twice twig twilight twin twirl twist two tycoon type typo tyrant tyre ugly ulcer ultra umbra uncle uncouth under undo undue unfit unify union unit unite unity until up upper upset urban urge urn usage use user usher usual usurp usury utter vacant vague vain vale valet valid valley value valve vamp van vane vanish vanity vapor vary vase vast vat vault veal veer vegan veil vein velvet vend venom vent venue venus verb verge verify verse very vessel vest vet veto vex vial vibe vice victim victor video view vigil vigor vile villa vine vinyl viola violet viper viral virus visa vise visit visor vista visual vital vivid vixen vocal vodka vogue voice void volt volume vomit vote vowel voyage vow wacko wad wafer waffle wage wager wagon waif wail waist wait waive wake walk wall waltz wan wand wane want war ward ware warm warn warp wart wary wash wasp waste watch water watt wave wax way weak weal wealth wear weary weasel weave web wed wedge weed week weep weigh weird weld well welt wench went wept were west wet whack whale wharf what wheat wheel wheeze whelp when where whet which whiff while whim whine whip whirl whisk whisky whisper white whiz who whole whom whoop whore whose why wick wide widow width wield wife wig wild wile will wilt wily win wince winch wind wine wing wink winnow winter wipe wire wise wish wisp wit witch with wither within witty wives wizard woe wolf woman womb women won wonder wont wood wool word work world worm worn worry worse worst worth would wound wow wrack wraith wrap wrath wreak wreath wreck wren wrench wrest wretch write writhe wrong wrote wry xenon yacht yahoo yak yam yank yap yard yarn yawn year yearn yeast yell yellow yelp yes yet yew yield yoke yolk yonder you young your youth yowl yuck yummy zany zeal zebra zenith zero zest zinc zone zoo zoom`;
+        // --- QUIPS ---
+        const QUIPS = {
+            high: [
+                "Follow @crazyfactsreallife on Instagram!", "Did you know? You're a genius!", "Absolutely brilliant!", "Grid mastery unlocked!", 
+                "Neural network: Active!", "A true wordsmith!", "Textbook perfection!", "Simply outstanding!", "Mental acuity confirmed!", 
+                "Sharp as a tack!", "Poetry in motion!", "Sublime logic!", "Architect of letters!", "System optimal!", "Pure genius!",
+                "Vive la France!", "Magnifique!", "Highly correlated to IQ!", "Top percentile!"
+            ],
+            mid: [
+                "Did you know? Practice makes perfect!", "Not bad at all!", "Solid effort!", "Respectable outcome!", "Getting warmer!", 
+                "Follow @crazyfactsreallife on Instagram!", "Good, not great!", "The matrix accepts this!", "On the right track!", 
+                "Steady progress!", "Mental gears turning!", "Almost there!", "Word search initiated!", "Functioning normally!",
+                "Keep digging!", "Processing...", "Standard deviation!"
+            ],
+            low: [
+                "Better luck next time!", "Follow @crazyfactsreallife on Instagram!", "Did you know? Failure teaches success!", "Oh dear!", 
+                "Try again tomorrow!", "Pure chaos!", "Entropy increases!", "Words are hard!", "The grid wins this round!", 
+                "Reboot required!", "Brain fog detected!", "Needs more coffee!", "A valiant struggle!", "Chaos theory in action!", 
+                "Syntax error!", "Cognitive glitch!", "Maybe try Sudoku?", "Ouch!"
+            ]
+        };
 
-        const WORDS_ARRAY = RAW_WORD_LIST.split(/\s+/).map(w => w.toUpperCase().trim()).filter(w => w.length >= 3);
-        const DICTIONARY = new Set(WORDS_ARRAY);
-        const FIVE_LETTER_WORDS = WORDS_ARRAY.filter(w => w.length === 5);
+        // --- THEMES ---
+        const THEMES = {
+            classic: {
+                name: "Newspaper",
+                font: "font-serif",
+                bg: "bg-white",
+                darkBg: "dark:bg-zinc-900",
+                text: "text-black",
+                darkText: "dark:text-zinc-100",
+                border: "border-black",
+                darkBorder: "dark:border-zinc-100",
+                accent: "text-blue-500",
+                // Newspaper: 1-Black, 2-Red, 3-Yellow, 4-Green, 5-Blue
+                scoreColors: ["text-black dark:text-zinc-100", "text-black dark:text-zinc-100", "text-red-600 dark:text-red-400", "text-yellow-500 dark:text-yellow-400", "text-green-600 dark:text-green-400", "text-blue-600 dark:text-blue-400"],
+                legendFills: ["bg-gray-200 dark:bg-zinc-700", "bg-gray-200 dark:bg-zinc-700", "bg-red-100 dark:bg-red-900", "bg-yellow-100 dark:bg-yellow-900", "bg-green-100 dark:bg-green-900", "bg-blue-100 dark:bg-blue-900"],
+                anim: "anim-classic"
+            },
+            heatmap: {
+                name: "Heatmap",
+                font: "font-sans font-medium", // Slightly heavier font
+                bg: "bg-solar-white", // Custom warm off-white
+                darkBg: "dark:bg-slate-900",
+                text: "text-slate-800",
+                darkText: "dark:text-slate-100",
+                border: "border-slate-800",
+                darkBorder: "dark:border-slate-400",
+                accent: "text-blue-600",
+                // Heatmap (Flame): 1-Purple, 2-Red, 3-Orange, 4-Yellow, 5-Blue
+                scoreColors: ["text-slate-400", "text-purple-600 dark:text-purple-400", "text-red-600 dark:text-red-400", "text-orange-500 dark:text-orange-400", "text-yellow-400", "text-cyan-400"],
+                legendFills: ["bg-slate-200 dark:bg-slate-700", "bg-purple-100 dark:bg-purple-900", "bg-red-100 dark:bg-red-900", "bg-orange-100 dark:bg-orange-900", "bg-yellow-100 dark:bg-yellow-900", "bg-cyan-100 dark:bg-cyan-900"],
+                anim: "anim-heat"
+            },
+            terminal: {
+                name: "Terminal",
+                font: "font-mono",
+                bg: "bg-white", 
+                darkBg: "dark:bg-black",
+                text: "text-green-700",
+                darkText: "dark:text-green-400",
+                border: "border-green-800",
+                darkBorder: "dark:border-green-500",
+                accent: "text-green-600",
+                scoreColors: ["text-green-900 dark:text-green-900", "text-green-700 dark:text-green-700", "text-green-600 dark:text-green-500", "text-green-500 dark:text-green-300", "text-green-800 dark:text-white", "text-pink-600 dark:text-pink-500"],
+                legendFills: ["bg-green-100 dark:bg-green-900", "bg-green-100 dark:bg-green-900", "bg-green-200 dark:bg-green-800", "bg-green-300 dark:bg-green-700", "bg-green-400 dark:bg-green-600", "bg-pink-100 dark:bg-pink-900"],
+                anim: "anim-term"
+            }
+        };
+
+        // --- FALLBACK DICTIONARY ---
+        const FALLBACK_RAW = `the bosom ale all creed crate alas tears games cough and for are but not you all any can had has him his how man new now old one out say she see two way who boy did let put say too use dad mom cat dog bat car bus bed box cup jar key log map pan pen pie pig pin pot rag rat rug sun tan tin toe top tub van vet web wig yak zip ace aim air ant ape arc arm art ash ask awe axe bad bag bar bay bee bet bib bid big bin bit bog bow bud bug bum bun bus cab cad cam cap cob cod cog con cop cot cow coy cry cub cue cup cut dab dam day den dew die dig dim din dip doe dot dry dub dud due dug dye ear eat ebb eel egg ego elf elk elm end era eve eye fan far fat fax fed few fib fig fin fit fix flu fly fob foe fog fop fox fry fun fur gag gal gap gas gel gem get gig gin god goo got gum gun gut gym had hag ham hat hay hem hen her hew hex hey hid hip hit hoe hog hop hot hub hue hug hum hut ice ill ink inn ion ire ivy jab jam jar jaw jay jet jig job jog jot joy jug jut keg kid kin kit lab lad lag lap law lax lay lea led lee leg let lid lie lip lit lob log lop lot low lug lux lye mad man map mat maw may men met mew mid mix mob mod mom moo mop mow mud mug mum nag nap nay net new nil nip nod nor not now nut oak oar oat odd ode off oil old one orb ore our out owe owl own pad pal pan par pat paw pay pea peg pen pep pet pew pie pig pin pit ply pod pop pot pox pro pry pub pug pun pup pus put rag ram ran rap rat raw ray red rib rid rig rim rip rob rod roe rot row rub rue rug rum run rut rye sac sad sag sal sap sat saw say sea see set sew sex she shy sin sip sir sit six ski sky sly sob sod son sop sow soy spa spy sty sue sum sun sup tab tag tan tap tar tax tea tee ten the thy tic tie tin tip toe tog ton top tot tow toy try tub tug tun two urn use van vat vet via vie vow wag wan war wax way web wed wee wet who wig win wit woe won woo wow wry yak yam yap yea yes yet yew you zip zoo able acid aged agog also area army away baby back ball band bank base bath bear beat beer bell belt bend best bird bite blow blue boat body bond bone book boom born boss both bowl bulk burn bush busy cake call calm camp card care case cash cast chat chef chip city club coal coat code cold come cook cool cope copy cord core corn cost crew crop dark data date dawn dead deal dear debt deck deep deer deny desk dial diet dirt disc dish disk door dose down drag draw drop drug drum duck dust duty earn ease east easy edge edit else envy even ever evil exit face fact fade fail fair fall fame farm fast fate fear feed feel feet fell file fill film find fine fire firm fish five flag flat flaw flee flew flip flow foam folk food foot ford form fort four free frog from fuel full fund gain game gang gap gate gear gene gift girl give glad goal goat gold golf gone good grab gray grew grey grid grin grip grow hair half hall hand hang hard hate have head heal hear heat help herb here hero high hill hire hold hole holy home hope host hour huge hung hunt hurt idea inch iron item jack jail jazz jeep join joke jump jury just keen keep kept kick kill kind king kiss knee knew knit knot know lack lady laid lake land lane last late lava lead leaf lean leap left lend lens less levy life lift like limb lime line link lion list live load loan lock loft logo long look loop lord lose loss lost loud love luck lung lure lust maid mail main make male mall many mark mask mass mate math meal mean meat meet melt menu mesh mess mild mile milk mill mind mine mise miss mist mix mode mold mood moon more moss most move much must name near neat neck need nest news next nice night nine noon norm nose note noun nova null numb nurse oath obey odds okay once only onto open oral pink pipe plan play plot plug plus poem poet poll pond pool poor port pose post pour pray prep prey pull pump pure push quit quiz race rack rage raid rail rain rake rank rate rave read real rear rely rent rest rice rich ride ring riot rise risk road roar rock role roll roof room root rope rose rule rush rust safe said sail sake sale salt same sand save scan scar seal seat seed seek seem seen self sell send sent set ship shoe shop shot show shut sick side sign silk silo sing sink site size skin skip slab slam slap slat sled slip slit slot slow slum snap snow soak soap soar sock soda sofa soft soil sold sole solo some song soon sore sort soul soup sour span spin spit spot star stay stem step stew stir stop stud such suck suit sure swim tail take tale talk tall tank tape task team tear tell tent term test text than that them then they thin this thou tide tidy tied tier tile tilt time tiny tire toad toll tone tool tour town trap tray tree trek trim trip true tube tune turn twin type unit upon urge used user vary vast very vest view visa void volt vote wage wait wake walk wall want ward warm warn wash wasp wave weak wear weed week weep well went were west what when whom wide wife wild will wind wine wing wipe wire wise wish with wolf wood wool word work worm worn wrap yard yarn year yell yoga zero zone about above abuse actor acute admit adopt adult after again agent agree ahead alarm album alert alien alike alive allow alone along alter among anger angle angry ankle apple apply arena argue arise array arrow aside asset audio audit avoid award aware awful badge baker basic basis beach beard beast began begin begun being belly below bench berry birth black blade blame blank blast blend blind block blood board boast boost booth booty bored borne bound bowel boxer brain brake brand brass brave bread break breed brick bride brief bring broad broke brown brush build built bunch burst buyer cabin cable camel canal candy canoe canon cargo carry carve catch cause cease chain chair chalk chaos charm chart chase cheap cheat check cheek cheer chest chief child chill china chips chord chunk churn cigar civic civil claim clamp class clean clear clerk click cliff climb cloak clock close cloth cloud clown coach coast cocoa count court cover craft crash crazy cream creek creep crest crew crowd crown crude cruel crush crust curve cycle daily dairy dance dated dealt death debug debut decay decor delay delta demon dense depth derby devil diary digit dirty disco ditch diver dizzy doing donor doubt dozen draft drain drama drank dream dress drift drill drink drive drone drove drunk dryly ducky dummy dusty duvet dwell dying eager eagle early earth easel eaten eater eight eject elbow elder elect elite empty enact ended enemy enjoy enter entry envoy equal equip erase error erupt essay ether ethic event every exact exalt excel exert exile exist extra eyelet fable facet faint fairy faith false fancy farms fatal fault favor feast fence ferry fetch fever fiber field fiend fifty fight filed filet filly filth final first fishy fixit flame flash flask fleet flesh fling flint flirt float flock flood floor flora flour flown fluid flush flute focal focus foggy folks force forge forgo forty forum found foyer frail frame fraud freak fresh friar fried frill frisk frock front frost froth frown fruit fudge fugue fully fungi funky funny furry fury fuse fusion fuzzy gaily gains galaxy gamer games gamma gamut gangs gaped garage gases gasp gates gauge gaunt gauze gavel gawk gayly gazer gears gecko geeky geese genie genre ghost giant giddy gifts gipsy girls girth given giver glade gland glare glass glaze gleam glean glide glint gloat globe gloom glory gloss glove glow glued gluey gnarl gnash gnat gnaw gnome going golly goner good goofy goose gorge gouge gourd grace grade graft grail grain gram grand grant grape graph grasp grass grate grave gravy graze great greed green greet grid grief grill grim grin grind grip groan groin groom gross group grove growl grown growth gruel gruff grunt guard guess guest guide guild guile guilt guise guitar gulf gully gumbo gummy guppy gusty gutsy gypsy habit hack haft hail hair hairy half hall halo halt hammy hand handy hang hank happy hard hardy hare harem hark harm harp harry harsh hart hash hasp haste hasty hatch hate haul haunt haven havoc hawk hay hazel hazy head heal heap hear heart heat heavy hedge heed heel heft heir held helix hello helm help hence herb herd here hero hers high hike hill hilt hind hinge hint hippo hire hiss hist hitch hive hoard hobby hobo hoist hold hole holly holy home hone hood hoof hook hoop hoot hope horde horn horse hose host hot hotel hound hour house hover howdy howl huge hula hulk hull hum human humid hump humus hunch hung hunk hunt hurl hurry hurt hush husk husky hussy hutch hydra hydro hyena hymn hype icily icing icon idea idle idol idyll igloo image impel imply inbox incur index inept inert infer ingot inject ink inlay inlet inner input inset inter into intro inure invent invert invite irate iron irony islet issue itch item ivory jack jaded jail jamb jane jazz jean jeep jeer jelly jerk jest jet jewel jiffy jilt jinx jive job jock join joke jolt josh joy judge juice juicy jump junk juror jury just jute kale karma kayak kebab keel keen keep kegs kelp kept kerb keys kick kid kill kiln kilo kilt kin kind king kink kiss kit kite kiwi knack knave knead knee knell knelt knew knick knife knit knob knock knot know koala label labor lace lack lad lady lag laid lain lair lake lamb lame lamp lance land lane lank lapel lapse large lark larva laser lash lass last latch late lathe laud laugh lava lawn lawyer lay layer lazy lead leaf leak lean leap learn lease leash least leave ledge leech left leg lemon lend lens lent less lest let level lever levy liar libel lick lid lie life lift light like lilac limb lime limit limp line ling link lint lion lip list lit live load loaf loan lobby lobe local lock llocust lodge loft log logic loin lone long look loom loop loose loot lord lorry lose loss lost lot loud louse love low loyal luck lucky lull lump lunar lunch lung lure lurk lush lust lute luxe lying lymph lynch lyric mace macho macro madly mafia magic maid mail main maize major make male mall malt mama mammal man manage mane mange mango mania manic manor many map maple mar march mare mark market marry marsh mart mash mask mass mast mat match mate math maul maw maxi may maybe mayor maze mead meal mean meat medal media medic meet meld melt meme memo men mend menu meow mercy mere merge merit merry mesh mess metal mete meter method metro mew micro mid midst miff might mild mile milk mill mimic mince mind mine mini mink minor mint minus minute mire mirth mises miss mist mite mitt mix moan moat mob mock mode model modem mogul moist mold mole mom money monk month mood moon moor moose mop mope moral more morn morph moss most moth motion motive motor motto mound mount mourn mouse mouth move movie mow much muck mucus mud muff mug mulch mule multi mum mummy mural murder murky muse mush music musk must mute mutter mutton myth nabob nacho nag nail naive naked name nanny nap nape narrow nasty natal nation native nature naval navel navy near neat neck need neon nerd nerve nest net never new news next nice niche nick niece night nill nine ninth nip noble nod node noise noisy nomad none nook noon nope nor norm north nose not note nothing notice noun novel now nub nude nudge null numb nun nurse nut nylon nymph oak oar oasis oath oats obey object oboe ocean octet odd odds odor off offer often ogre oil oily okay okra old olive omen omit once one onion only onset onto onus onyx ooze opal open opera opium opt optic oral orb orbit order ore organ other otter ouch ought ounce our out outer outdo outfit oval oven over owl own owner oxide ozone pace pack pact pad page paid pail pain pair pal pale palm pan panel panic pant papa paper parade parcel parch park parry parse part party pass past pat patch path patio pause pave paw pawn pay pay peace peach peak pear pearl peat peck pedal peek peel peep peer peg pen pelt pencil penny people pepper perch peril perk perm pest pet petal petty phase phone photo piano pick pie piece pier pig pike pile pill pilot pin pinch pine ping pink pint pipe pit pitch pith pity pivot pixel pizza place plaid plain plait plan plane plank plant plate play plea plead pleat pled plot plow pluck plug plum plump plus plush ply poach pod poem poet point poise poke polar pole police poll polo pond pony pool poor pop pope poppy porch pore pork port pose posh post posy pot pouch pound pour pout powder power pox pram prank pray prep press prey price prick pride prime primp print prior prism prize probe prone prong proof prop prose proud prove prowl proxy prune pry pub public puff pull pulp pulse pump punch punk pupil puppet puppy pure purge purr purse push put putty pygmy pylon pyre quad quail quake qualm quart queen queer quell query quest queue quick quiet quill quilt quirk quit quite quota quote rabbit rabid race rack radar radio raft rage raid rail rain raise rake rally ram ranch range rank rant rap rape rapid rare rash rasp rat rate ratio rattle rave raven raw ray razor reach react read ready real realm ream reap rear rebel rebut recall recap recur red reed reef reel refer refit regal reign rein reject relax relay relic rely remain remit remix rend renew rent repay repel reply report reset resin rest retch retro retry return reuse revel revile review rhino rhyme rhythm rib ribbon rice rich rid ride ridge rife riff rifle rift rig right rigid rile rim rind ring rink riot rip ripe rise risk rite ritual rival river road roam roar roast rob robe robot rock rocket rod rode rogue role roll romp roof room roost root rope rose rosy rot rotate rotor rotten rouge rough round route rove row royal rub ruby rudder rude rue ruff rug ruin rule rumble rumor rump run rung runt rural ruse rush rusk rust rusty rut sack sad saddle safe saga sage said sail saint sake salad sale sally salon salt same sample sand sane sash sat satin satire sauce save savor saw say scab scald scale scalp scam scan scar scare scarf scene scent school scoff scold scoop scoot scope score scorn scour scout scowl scrap scream screen screw script scroll scrub scuba scuff scull scum sea seal seam sear seat second secret sect sedan sedate seed seek seem seen seep seer self sell semi send sense sent sentry sepia sequel serf serial series sermon serum serve set settle seven sever sew sewer sex shack shade shadow shaft shag shake shaky shale shall sham shame shank shape share shark sharp shave shaw she sheaf shear shed sheen sheep sheer sheet shelf shell shied shift shine shiny ship shirt shiver shoal shock shoe shone shoo shoot shop shore short shot shout shove show shred shrew shrill shrimp shrink shrub shrug shuck shun shunt shut shy sick side siege sift sigh sight sign silk sill silly silo silt silver simian simple sin since sinew sing sink sip sir sire siren sister sit site six size skate skew skid skier skill skim skin skip skirt skit skulk skull skunk sky slab slack slag slain slam slang slant slap slash slat slate slave slay sled sleek sleep sleet sleeve slew slice slick slid slide slight slim slime sling slip slit slob sloe slog slope slosh slot slow slug slum slump slur slush sly smack small smart smash smear smell smelt smile smirk smite smith smock smog smoke smooth snack snag snail snake snap snare snarl sneak sneer sneeze sniff snip snob snoop snore snort snout snow snub snuff snug soak soap soar sob sober sock soda sofa soft soil sol solar sold sole solid solo solve some sonar song sonic soon soot sore sort soul sound soup sour source south sow space spade span spare spark spasm spat spawn speak spear speck speed spell spelt spend sperm spew spice spicy spider spike spill spin spine spire spirit spit spite splash splat split spoil spoke sponge spook spool spoon spore sport spot spout spray spread spree sprig spring sprint sprout spun spur spurn spurt spy squad squat squaw squeak squint squirm squirt stab stack staff stag stage stain stair stake stale stalk stall stamp stand stank star stare stark start stash state stave stay steak steal steam steed steel steep steer stem step stern stew stick stiff still stilt sting stink stint stir stitch stock stoic stoke stole stomp stone stood stool stoop stop store stork storm story stout stove stow strap straw stray streak stream street stress stretch strict stride strife strike string strip strive stroke stroll strong struck strum strut stub stuck stud study stuff stump stun stunt style suave suck sudan suede sugar suit sulk sullen sum sumo sun sung sunk sunny super supper supple supply sure surf surge surly surmise sushi swab swamp swan swap swarm sway swear sweat sweep sweet swell swept swift swim swine swing swirl swish switch sword sworn sycamore sync syrup system table tack taco tact tad taffy tag tail taint take tale talk tall talon tame tan tang tank tap tape taper tapir tar tardy target tariff tarn tart task taste tat tatter tattoo taught taunt taut tax taxi tea teach teak team tear tease teat tech teen teeth tell temper temple tempo tempt ten tenant tend tenet tennis tenor tense tent tenth term tern terra terse test text than thank that thaw the thee their them theme then there these they thick thief thigh thin thing think third thirst this thorn those thou though thrash thread threat three threw thrill thrive throat throb throne throng throw thrum thud thug thumb thump thunder thus thyme tiara tick ticket tide tidy tie tier tiger tight tile till tilt time timid tin tinder tine tinge tint tiny tip tire titan title toad toast today toddle toe toffee toga toil token told toll tom tomb tome ton tone tongs tongue tonic too took tool toot tooth top topic torch torso tort toss tot total tote touch tough tour tow towel tower town toxic toy trace track tract trade trail train trait tram tramp trance trap trash travel tray tread treat tree trek trend trial tribe trick tried trill trim trio trip trite troll troop trot trout truce truck true trump trunk trust truth try tub tuba tube tuck tuft tug tulip tumble tuna tune tunic tunnel turban turf turkey turn turtle tusk tutor tux twain tweak tweed tweet twice twig twilight twin twirl twist two tycoon type typo tyrant tyre ugly ulcer ultra umbra uncle uncouth under undo undue unfit unify union unit unite unity until up upper upset urban urge urn usage use user usher usual usurp usury utter vacant vague vain vale valet valid valley value valve vamp van vane vanish vanity vapor vary vase vast vat vault veal veer vegan veil vein velvet vend venom vent venue venus verb verge verify verse very vessel vest vet veto vex vial vibe vice victim victor video view vigil vigor vile villa vine vinyl viola violet viper viral virus visa vise visit visor vista visual vital vivid vixen vocal vodka vogue voice void volt volume vomit vote vowel voyage vow wacko wad wafer waffle wage wager wagon waif wail waist wait waive wake walk wall waltz wan wand wane want war ward ware warm warn warp wart wary wash wasp waste watch water watt wave wax way weak weal wealth wear weary weasel weave web wed wedge weed week weep weigh weird weld well welt wench went wept were west wet whack whale wharf what wheat wheel wheeze whelp when where whet which whiff while whim whine whip whirl whisk whisky whisper white whiz who whole whom whoop whore whose why wick wide widow width wield wife wig wild wile will wilt wily win wince winch wind wine wing wink winnow winter wipe wire wise wish wisp wit witch with wither within witty wives wizard woe wolf woman womb women won wonder wont wood wool word work world worm worn worry worse worst worth would wound wow wrack wraith wrap wrath wreak wreath wreck wren wrench wrest wretch write writhe wrong wrote wry xenon yacht yahoo yak yam yank yap yard yarn yawn year yearn yeast yell yellow yelp yes yet yew yield yoke yolk yonder you young your youth yowl yuck yummy zany zeal zebra zenith zero zest zinc zone zoo zoom`;
 
         // --- RNG ---
         const mulberry32 = (a) => {
@@ -103,9 +212,6 @@
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)); 
             return (diffDays + 1).toString().padStart(4, '0');
         };
-
-        // --- HELPERS ---
-        const isWord = (word) => DICTIONARY.has(word);
 
         const generateAllLines = () => {
             const lines = [];
@@ -148,17 +254,108 @@
 
         // --- APP ---
         const App = () => {
+            // Preferences State
+            const [themeKey, setThemeKey] = useState('classic');
+            const [darkMode, setDarkMode] = useState(false);
+            
+            // Game State
             const [grid, setGrid] = useState(Array(25).fill(''));
             const [fixedIndices, setFixedIndices] = useState(new Set());
-            const [gameState, setGameState] = useState('playing');
+            const [gameState, setGameState] = useState('loading');
             const [focusedIndex, setFocusedIndex] = useState(null);
             const [copyStatus, setCopyStatus] = useState(false);
             const [hoveredCell, setHoveredCell] = useState(null);
             const [activeTooltip, setActiveTooltip] = useState(null);
-            const [showRules, setShowRules] = useState(false);
+            const [viewMode, setViewMode] = useState('game'); // 'game', 'rules', 'settings'
             const [isFlickering, setIsFlickering] = useState(false);
+            const [finalMessage, setFinalMessage] = useState("");
+            
+            const containerRef = useRef(null);
+            
+            // Dictionary State
+            const [dictionary, setDictionary] = useState(new Set());
+            const [fiveLetterWords, setFiveLetterWords] = useState([]);
+
+            // Theme Derived
+            const currentTheme = THEMES[themeKey] || THEMES.classic;
+
+            // Load Preferences
+            useEffect(() => {
+                const savedTheme = localStorage.getItem('quexes_theme');
+                if (savedTheme && THEMES[savedTheme]) setThemeKey(savedTheme);
+                
+                const savedDark = localStorage.getItem('quexes_dark');
+                if (savedDark) {
+                    setDarkMode(savedDark === 'true');
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    setDarkMode(true);
+                }
+            }, []);
+
+            // Apply Dark Mode Class to Body
+            useEffect(() => {
+                if (darkMode) document.documentElement.classList.add('dark');
+                else document.documentElement.classList.remove('dark');
+                
+                // Also update body classes for background
+                document.body.className = `transition-colors duration-500 min-h-screen flex flex-col items-center justify-center selection:bg-black selection:text-white ${currentTheme.bg} ${currentTheme.darkBg} ${currentTheme.text} ${currentTheme.darkText} ${currentTheme.font}`;
+            }, [darkMode, currentTheme]);
+
+            // Save Preferences
+            const updateTheme = (key) => {
+                setThemeKey(key);
+                localStorage.setItem('quexes_theme', key);
+            };
+            const updateDarkMode = (isDark) => {
+                setDarkMode(isDark);
+                localStorage.setItem('quexes_dark', isDark);
+            };
+            
+            // Handle Click Outside
+            useEffect(() => {
+                const handleClickOutside = (event) => {
+                    if (viewMode === 'game') return; // Only relevant when menu is open
+                    // Check if click was on header buttons (to avoid instant toggle loop)
+                    if (event.target.closest('#header-buttons')) return;
+
+                    if (containerRef.current && !containerRef.current.contains(event.target)) {
+                         setViewMode('game');
+                    }
+                };
+
+                document.addEventListener('mousedown', handleClickOutside);
+                return () => {
+                    document.removeEventListener('mousedown', handleClickOutside);
+                };
+            }, [viewMode]);
+
+
+            // Fetch Dictionary
+            useEffect(() => {
+                const loadDictionary = async () => {
+                    try {
+                        const response = await fetch('https://raw.githubusercontent.com/dolph/dictionary/master/enable1.txt');
+                        if (!response.ok) throw new Error('Failed to fetch dictionary');
+                        const text = await response.text();
+                        const words = text.split(/\r?\n/).map(w => w.trim().toUpperCase()).filter(w => w.length >= 3 && w.length <= 5);
+                        setDictionary(new Set(words));
+                        setFiveLetterWords(words.filter(w => w.length === 5));
+                        setTimeout(() => initGame(words.filter(w => w.length === 5)), 100);
+                    } catch (error) {
+                        const fallbackWords = FALLBACK_RAW.split(/\s+/).map(w => w.toUpperCase().trim()).filter(w => w.length >= 3);
+                        setDictionary(new Set(fallbackWords));
+                        setFiveLetterWords(fallbackWords.filter(w => w.length === 5));
+                        initGame(fallbackWords.filter(w => w.length === 5));
+                    }
+                };
+                loadDictionary();
+            }, []);
+
+            const isWord = (word) => dictionary.has(word);
 
             const analysis = useMemo(() => {
+                if (dictionary.size === 0) return { score: 0, words: [], overlaps: Array(25).fill(0), details: Array(25).fill(null).map(() => []), goldMedal: false };
+
                 const foundWords = [];
                 const cellOverlaps = Array(25).fill(0);
                 const cellDetails = Array(25).fill(null).map(() => []);
@@ -175,11 +372,6 @@
                                 const word = str.substring(i, i + len);
                                 if (word.includes(' ')) continue; 
                                 if (isWord(word)) {
-                                    let wordPoints = 0;
-                                    if (word.length === 3) wordPoints = 1;
-                                    else if (word.length === 4) wordPoints = 3;
-                                    else if (word.length === 5) wordPoints = 5;
-
                                     const instanceIndices = [];
                                     for (let k = 0; k < len; k++) {
                                         const charIndexInLine = i + k;
@@ -192,7 +384,7 @@
 
                                     if (!uniqueWordKeys.has(uniqueKey)) {
                                         uniqueWordKeys.add(uniqueKey);
-                                        foundWords.push({ word, points: wordPoints });
+                                        foundWords.push({ word, points: 0 }); 
                                         const dirArrow = getDirectionArrow(type, isReverse);
                                         instanceIndices.forEach(gridIdx => {
                                             cellOverlaps[gridIdx]++;
@@ -210,29 +402,29 @@
                 let totalScore = 0;
                 for (let i = 0; i < 25; i++) {
                     const overlaps = cellOverlaps[i];
-                    let points = 0;
-                    if (overlaps === 1) points = 1;
-                    else if (overlaps === 2) points = 3;
-                    else if (overlaps === 3) points = 4;
-                    else if (overlaps >= 4) points = 5;
+                    const points = Math.min(overlaps, 5);
                     totalScore += points;
                 }
                 
                 const goldMedal = cellOverlaps.every(count => count > 0);
-                foundWords.sort((a, b) => b.points - a.points || a.word.localeCompare(b.word));
+                foundWords.sort((a, b) => a.word.localeCompare(b.word)); 
                 return { score: totalScore, words: foundWords, overlaps: cellOverlaps, details: cellDetails, goldMedal };
-            }, [grid]);
+            }, [grid, dictionary]);
 
-            const initGame = () => {
+            const initGame = (wordsSource) => {
+                if (!wordsSource || wordsSource.length === 0) return;
+
                 const seed = getDailySeed();
                 const rng = mulberry32(seed);
                 const validGrid = Array(25).fill('');
+                
                 for (let r = 0; r < 5; r++) {
-                    const word = FIVE_LETTER_WORDS[Math.floor(rng() * FIVE_LETTER_WORDS.length)];
+                    const word = wordsSource[Math.floor(rng() * wordsSource.length)];
                     for (let c = 0; c < 5; c++) { validGrid[r * 5 + c] = word[c]; }
                 }
+                
                 const newFixed = new Set();
-                const count = Math.floor(rng() * 4) + 3;
+                const count = Math.floor(rng() * 3) + 5; 
                 const indices = [];
                 while (indices.length < count) {
                     const idx = Math.floor(rng() * 25);
@@ -243,11 +435,12 @@
                     displayGrid[idx] = validGrid[idx];
                     newFixed.add(idx);
                 });
+                
                 setGrid(displayGrid);
                 setFixedIndices(newFixed);
                 setGameState('playing');
                 setCopyStatus(false);
-                setShowRules(false);
+                setViewMode('game');
                 setActiveTooltip(null);
                 setIsFlickering(false);
             };
@@ -261,8 +454,6 @@
                 setIsFlickering(false);
             };
 
-            useEffect(() => { initGame(); }, []);
-
             const handleCellChange = (index, value) => {
                 if (fixedIndices.has(index) || gameState === 'scored' || isFlickering) return;
                 const char = value.slice(-1).toUpperCase();
@@ -271,6 +462,16 @@
                 newGrid[index] = char;
                 setGrid(newGrid);
                 if (char && index < 24) document.getElementById(`cell-${index + 1}`)?.focus();
+            };
+
+            const handleCellClick = (index) => {
+                if (gameState === 'scored') {
+                    setActiveTooltip(activeTooltip === index ? null : index);
+                } else {
+                    if (!fixedIndices.has(index) && !isFlickering) {
+                         document.getElementById(`cell-${index}`)?.focus();
+                    }
+                }
             };
 
             const handleKeyDown = (e, index) => {
@@ -304,133 +505,277 @@
 
             const submitGame = () => {
                 setIsFlickering(true);
+                // Determine Quip based on score logic (Max potential is 125, but realistic high is ~80+)
+                let msg = "";
+                if (analysis.score >= 80) msg = QUIPS.high[Math.floor(Math.random() * QUIPS.high.length)];
+                else if (analysis.score >= 40) msg = QUIPS.mid[Math.floor(Math.random() * QUIPS.mid.length)];
+                else msg = QUIPS.low[Math.floor(Math.random() * QUIPS.low.length)];
+                setFinalMessage(msg);
+
                 setTimeout(() => { setIsFlickering(false); setGameState('scored'); }, 1800);
             };
 
             const copyToClipboard = () => {
                 const medalText = analysis.goldMedal ? '\n🥇' : '';
                 const text = `QUEXES ${getPuzzleNumber()}\n${getFormattedDate()}\nScore: ${analysis.score}\nWords found: ${analysis.words.length}${medalText}`;
-                navigator.clipboard.writeText(text).then(() => {
-                    setCopyStatus(true);
-                    setTimeout(() => setCopyStatus(false), 2000);
-                });
+                
+                const fallbackCopy = (text) => {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    try {
+                        document.execCommand('copy');
+                        setCopyStatus(true);
+                        setTimeout(() => setCopyStatus(false), 2000);
+                    } catch (err) {
+                        console.error('Fallback');
+                    }
+                    document.body.removeChild(textArea);
+                };
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        setCopyStatus(true);
+                        setTimeout(() => setCopyStatus(false), 2000);
+                    }).catch(() => fallbackCopy(text));
+                } else {
+                    fallbackCopy(text);
+                }
             };
 
             const isFull = grid.every(c => c !== '');
 
             const getCellStyles = (index) => {
-                const base = "w-12 h-12 sm:w-16 sm:h-16 text-center text-2xl sm:text-3xl font-serif transition-all duration-300 outline-none select-none relative z-10 bg-transparent";
+                const base = `w-12 h-12 sm:w-16 sm:h-16 text-center text-2xl sm:text-3xl transition-all duration-300 outline-none select-none relative z-10 bg-transparent ${currentTheme.font}`;
                 const overlaps = analysis.overlaps[index];
                 const isFixed = fixedIndices.has(index);
-                let colorClass = "text-black";
+                let colorClass = currentTheme.text;
                 let styleClass = isFixed ? "font-bold" : "";
-                let animClass = "";
-
-                if (isFlickering) {
-                    if (overlaps === 0) styleClass += " not-italic"; else styleClass += " italic";
-                    if (overlaps <= 1) animClass = "anim-k";
-                    else if (overlaps === 2) animClass = "anim-c";
-                    else if (overlaps === 3) animClass = "anim-m";
-                    else if (overlaps >= 4) animClass = "anim-y";
-                    return `${base} ${styleClass} ${animClass}`;
-                }
-                if (grid[index] === '') return `${base} ${styleClass} text-black`;
                 
-                if (overlaps === 0) { colorClass = "text-black"; styleClass += " not-italic"; } 
-                else if (overlaps === 1) { colorClass = "text-black"; styleClass += " italic"; } 
-                else if (overlaps === 2) { colorClass = "text-yellow-600"; styleClass += " italic"; } 
-                else if (overlaps === 3) { colorClass = "text-green-600"; styleClass += " italic"; } 
-                else if (overlaps >= 4) { colorClass = "text-red-600"; styleClass += " italic"; }
-                return `${base} ${colorClass} ${styleClass} opacity-100`;
+                // Get color from theme based on overlaps (capped at 5)
+                const scoreIndex = Math.min(Math.max(0, overlaps), 5);
+                const scoreColor = currentTheme.scoreColors[scoreIndex] || currentTheme.text;
+
+                // --- ANIMATION LOGIC ---
+                if (isFlickering) {
+                    styleClass += overlaps === 0 ? " not-italic" : " italic";
+                    // Physics: Heavier (higher score) tiles move slower
+                    // Base duration much faster now: 0.1s + weight
+                    const baseDuration = 0.15; 
+                    const duration = `${baseDuration + (overlaps * 0.1)}s`; 
+                    // Random start to desync
+                    const delay = `-${Math.random() * 2}s`;
+                    
+                    return {
+                        className: `${base} ${styleClass} ${currentTheme.anim}`,
+                        style: { animationDuration: duration, animationDelay: delay }
+                    };
+                }
+                
+                if (grid[index] === '') return { className: `${base} ${styleClass} ${currentTheme.text} ${currentTheme.darkText}`, style: {} };
+                
+                if (overlaps === 0) { 
+                    styleClass += " not-italic"; 
+                    colorClass = `${currentTheme.text} ${currentTheme.darkText}`;
+                } else {
+                    styleClass += " italic";
+                    colorClass = scoreColor;
+                }
+                
+                return { className: `${base} ${colorClass} ${styleClass} opacity-100`, style: {} };
             };
 
-            const getAnimDelay = (index) => ({ animationDelay: `-${(index % 5) * 0.2}s` });
+            // Loading Screen
+            if (gameState === 'loading') {
+                return (
+                    <div className={`min-h-screen flex flex-col items-center justify-center font-serif p-4 ${currentTheme.bg} ${currentTheme.darkBg} ${currentTheme.text} ${currentTheme.darkText}`}>
+                        <h1 className="text-4xl font-normal mb-8 font-serif tracking-[0.15em] animate-pulse">QUEXES</h1>
+                        <div className="text-sm uppercase tracking-widest opacity-50 loading-dots">Initializing Dictionary</div>
+                    </div>
+                );
+            }
 
             return (
-                <div className="min-h-screen bg-white text-black flex flex-col items-center justify-center font-serif p-4 selection:bg-black selection:text-white">
-                    <div className={`mb-8 text-center border-b-2 border-black pb-4 w-full max-w-md transition-opacity duration-300 ${showRules ? "opacity-25" : "opacity-100"}`}>
-                        <h1 className="text-6xl font-normal mb-2 font-serif tracking-[0.15em]">QUEXES</h1>
-                        <div className="flex justify-between items-center text-[10px] uppercase tracking-widest border-t border-black pt-1 mt-1 px-1">
-                            <span>No. {getPuzzleNumber()}</span>
-                            <button onClick={() => setShowRules(!showRules)} className="hover:bg-black hover:text-white px-1 py-0.5 border border-transparent hover:border-black transition-colors flex items-center gap-1 group z-50 cursor-pointer" style={{ pointerEvents: 'auto' }}>
-                                {showRules ? <><span className="mr-1">CLOSE</span><X size={10} /></> : <><span className="mr-1">RULES</span><HelpCircle size={10} /></>}
-                            </button>
-                            <span>{getFormattedDate()}</span>
+                <div className={`min-h-screen flex flex-col items-center justify-center p-4 selection:bg-black selection:text-white ${currentTheme.font} ${currentTheme.bg} ${currentTheme.darkBg} ${currentTheme.text} ${currentTheme.darkText}`}>
+                    {/* Header */}
+                    <div className={`mb-4 text-center border-b-2 ${currentTheme.border} ${currentTheme.darkBorder} pb-4 w-full max-w-md relative transition-all duration-300`}>
+                        <h1 className={`text-7xl font-normal mb-2 tracking-[0.15em] transition-opacity duration-300 ${viewMode !== 'game' ? "opacity-25" : "opacity-100"} ${currentTheme.font}`}>QUEXES</h1>
+                        <div className={`flex justify-between items-center text-[10px] uppercase tracking-widest border-t ${currentTheme.border} ${currentTheme.darkBorder} pt-1 mt-1 px-1 mb-1`}>
+                            <span className={`transition-opacity duration-300 ${viewMode !== 'game' ? "opacity-25" : "opacity-100"}`}>No. {getPuzzleNumber()}</span>
+                            <div className="flex gap-2 z-50" id="header-buttons">
+                                {viewMode !== 'game' ? (
+                                    <button 
+                                        onClick={() => {
+                                            if (viewMode === 'settings') setViewMode('rules');
+                                            else setViewMode('game');
+                                        }} 
+                                        className={`px-2 py-0.5 border ${currentTheme.border} ${currentTheme.darkBorder} transition-all duration-300 flex items-center gap-1 cursor-pointer hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black bg-black text-white dark:bg-white dark:text-black`}
+                                    >
+                                        {viewMode === 'settings' ? <><ChevronLeft size={10} /><span className="ml-1 font-bold">BACK</span></> : <><span className="mr-1 font-bold">CLOSE</span><X size={10} /></>}
+                                    </button>
+                                ) : (
+                                    <button 
+                                        onClick={() => setViewMode('rules')} 
+                                        className={`px-2 py-0.5 border ${currentTheme.border} ${currentTheme.darkBorder} transition-all duration-300 flex items-center gap-1 cursor-pointer hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black`}
+                                    >
+                                        <span className="mr-1">RULES</span><HelpCircle size={10} />
+                                    </button>
+                                )}
+                            </div>
+                            <span className={`transition-opacity duration-300 ${viewMode !== 'game' ? "opacity-25" : "opacity-100"}`}>{getFormattedDate()}</span>
                         </div>
                     </div>
 
-                    <div className="relative w-full max-w-md flex flex-col items-center">
-                        <div className="relative p-8 border border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white mb-8 transition-all duration-300 w-full aspect-square flex flex-col justify-center items-center">
-                            <div className="absolute top-0 left-0 w-2 h-2 bg-black"></div>
-                            <div className="absolute top-0 right-0 w-2 h-2 bg-black"></div>
-                            <div className="absolute bottom-0 left-0 w-2 h-2 bg-black"></div>
-                            <div className="absolute bottom-0 right-0 w-2 h-2 bg-black"></div>
+                    {/* SMART COMMENTARY AREA */}
+                    <div className="w-full max-w-md h-6 mb-2 flex items-center justify-center">
+                        {gameState === 'scored' && !isFlickering && (
+                            <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                <p className={`text-xs italic font-bold text-center opacity-80 ${currentTheme.text} ${currentTheme.darkText}`}>"{finalMessage}"</p>
+                            </div>
+                        )}
+                    </div>
 
-                            {showRules ? (
-                                <div className="flex flex-col items-center justify-center w-full h-full animate-in fade-in zoom-in duration-200">
-                                    <h2 className="text-xl font-bold uppercase tracking-widest mb-6 text-center border-b border-black pb-2">System Protocols</h2>
-                                    <ul className="space-y-4 text-sm font-serif leading-relaxed px-4">
-                                        <li className="flex gap-3"><span className="font-bold">01.</span><span>Fill all empty coordinates to complete the grid matrix.</span></li>
-                                        <li className="flex gap-3"><span className="font-bold">02.</span><span>Form words in any straight trajectory: Horizontal, Vertical, or Diagonal.</span></li>
-                                        <li className="flex gap-3"><span className="font-bold">03.</span><span>Efficiency Scoring: Overlapping words increase tile value.</span></li>
-                                        <li className="flex gap-3 items-center text-yellow-600"><span className="text-lg">🥇</span><span>Gold Medal awarded for 100% grid utilization (Every letter used).</span></li>
-                                    </ul>
-                                    <div className="mt-8 text-[10px] text-center uppercase tracking-widest text-gray-400">Tap 'Close' above to resume</div>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-5 gap-4 sm:gap-6">
-                                    {grid.map((char, i) => (
+                    <div className="relative w-full max-w-md flex flex-col items-center">
+                        <div ref={containerRef} className={`relative p-8 border ${currentTheme.border} ${currentTheme.darkBorder} shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.3)] ${themeKey === 'terminal' ? 'bg-white dark:bg-black' : (themeKey === 'heatmap' ? 'bg-solar-white dark:bg-zinc-900' : 'bg-white dark:bg-zinc-900')} mb-8 transition-all duration-300 w-full flex flex-col justify-center items-center`} style={{ minHeight: '400px' }}>
+                            {/* Corner Accents */}
+                            <div className={`absolute top-0 left-0 w-2 h-2 ${themeKey === 'terminal' ? 'bg-green-800 dark:bg-green-500' : 'bg-black dark:bg-white'}`}></div>
+                            <div className={`absolute top-0 right-0 w-2 h-2 ${themeKey === 'terminal' ? 'bg-green-800 dark:bg-green-500' : 'bg-black dark:bg-white'}`}></div>
+                            <div className={`absolute bottom-0 left-0 w-2 h-2 ${themeKey === 'terminal' ? 'bg-green-800 dark:bg-green-500' : 'bg-black dark:bg-white'}`}></div>
+                            <div className={`absolute bottom-0 right-0 w-2 h-2 ${themeKey === 'terminal' ? 'bg-green-800 dark:bg-green-500' : 'bg-black dark:bg-white'}`}></div>
+
+                            {/* --- GAME GRID (ALWAYS RENDERED) --- */}
+                            <div className="grid grid-cols-5 gap-4 sm:gap-6 relative">
+                                {grid.map((char, i) => {
+                                    const styles = getCellStyles(i);
+                                    return (
                                         <div key={i} className="relative group" onMouseEnter={() => setHoveredCell(i)} onMouseLeave={() => setHoveredCell(null)} onClick={() => handleCellClick(i)}>
-                                            {char === '' && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className="w-1.5 h-1.5 bg-black rounded-full group-focus-within:bg-transparent transition-colors"></div></div>}
-                                            <div className={`absolute bottom-2 left-2 right-2 h-[1px] bg-black transition-opacity duration-200 ${focusedIndex === i ? 'opacity-100' : 'opacity-0'}`}></div>
+                                            {char === '' && <div className={`absolute inset-0 flex items-center justify-center pointer-events-none`}><div className={`w-1.5 h-1.5 rounded-full group-focus-within:bg-transparent transition-colors ${themeKey === 'terminal' ? 'bg-green-900 dark:bg-green-500' : 'bg-black dark:bg-white'}`}></div></div>}
+                                            <div className={`absolute bottom-2 left-2 right-2 h-[1px] transition-opacity duration-200 ${focusedIndex === i ? 'opacity-100' : 'opacity-0'} ${themeKey === 'terminal' ? 'bg-green-800 dark:bg-green-500' : 'bg-black dark:bg-white'}`}></div>
                                             {gameState === 'scored' && (hoveredCell === i || activeTooltip === i) && analysis.details[i].length > 0 && !isFlickering && (
-                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-[150px] bg-black text-white p-2 text-xs z-50 shadow-lg pointer-events-none">
+                                                <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-[150px] p-2 text-xs z-50 shadow-lg pointer-events-none border ${currentTheme.border} ${currentTheme.darkBorder} ${themeKey === 'terminal' ? 'bg-black text-green-500' : 'bg-black text-white dark:bg-white dark:text-black'}`}>
                                                     <div className="flex flex-col gap-1">
                                                         {analysis.details[i].map((detail, idx) => (
-                                                            <div key={idx} className="flex justify-between items-center gap-3"><span className="font-bold tracking-wider">{detail.word}</span><span className="text-gray-300 font-mono text-[10px]">{detail.dir}</span></div>
+                                                            <div key={idx} className="flex justify-between items-center gap-3"><span className="font-bold tracking-wider">{detail.word}</span><span className="font-mono text-[10px] opacity-70">{detail.dir}</span></div>
                                                         ))}
                                                     </div>
-                                                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-black"></div>
                                                 </div>
                                             )}
-                                            <input id={`cell-${i}`} type="text" maxLength={1} value={char} readOnly={gameState === 'scored' || fixedIndices.has(i) || isFlickering} onChange={(e) => handleCellChange(i, e.target.value)} onKeyDown={(e) => handleKeyDown(e, i)} onFocus={() => { setFocusedIndex(i); setActiveTooltip(null); }} onBlur={() => setFocusedIndex(null)} autoComplete="off" className={getCellStyles(i)} style={isFlickering ? getAnimDelay(i) : {}} />
+                                            <input id={`cell-${i}`} type="text" maxLength={1} value={char} readOnly={gameState === 'scored' || fixedIndices.has(i) || isFlickering} onChange={(e) => handleCellChange(i, e.target.value)} onKeyDown={(e) => handleKeyDown(e, i)} onFocus={() => { setFocusedIndex(i); setActiveTooltip(null); }} onBlur={() => setFocusedIndex(null)} autoComplete="off" className={styles.className} style={styles.style} />
                                         </div>
-                                    ))}
+                                    );
+                                })}
+                            </div>
+
+                            {/* --- RULES OVERLAY --- */}
+                            {viewMode === 'rules' && (
+                                <div className={`absolute inset-0 z-40 p-8 flex flex-col items-center justify-between animate-in fade-in zoom-in duration-200 ${themeKey === 'terminal' ? 'bg-white dark:bg-black text-green-800 dark:text-green-500 pb-16 pt-2' : (themeKey === 'heatmap' ? 'bg-solar-white dark:bg-zinc-900 text-slate-800 dark:text-slate-100' : 'bg-white dark:bg-zinc-900 text-black dark:text-zinc-100')}`}>
+                                    <div className="w-full">
+                                        <h2 className={`text-xl font-bold uppercase tracking-widest mb-6 text-center border-b ${currentTheme.border} ${currentTheme.darkBorder} pb-2`}>RULES</h2>
+                                        <ul className="space-y-3 text-sm leading-relaxed px-2 text-left w-full">
+                                            <li className="flex flex-col gap-1">
+                                                <span className="font-bold text-[10px] uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-1 mb-1 opacity-70">01. The Matrix</span>
+                                                <span>Fill every empty cell to complete the grid.</span>
+                                            </li>
+                                            <li className="flex flex-col gap-1">
+                                                <span className="font-bold text-[10px] uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-1 mb-1 opacity-70">02. Formation</span>
+                                                <span>Create words of 3+ letters in ANY direction (Horizontal, Vertical, Diagonal).</span>
+                                            </li>
+                                            <li className="flex flex-col gap-1">
+                                                <span className="font-bold text-[10px] uppercase tracking-widest border-b border-gray-200 dark:border-gray-700 pb-1 mb-1 opacity-70">03. Efficiency</span>
+                                                <span>Tiles score 1 pt for every word they are part of (max 5).</span>
+                                            </li>
+                                            <li className="flex flex-col gap-1 text-yellow-600 dark:text-yellow-400">
+                                                <span className="font-bold text-[10px] uppercase tracking-widest border-b border-yellow-200 dark:border-yellow-700 pb-1 mb-1 flex items-center gap-2 opacity-100">04. Mastery <Medal size={12}/></span>
+                                                <span>Achieve 100% efficiency for Gold.</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <div className="w-full mt-4 pt-2 border-t border-gray-200 dark:border-gray-800">
+                                        <button onClick={() => setViewMode('settings')} className={`w-full py-2 flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest border ${currentTheme.border} ${currentTheme.darkBorder} hover:opacity-60 transition-opacity`}>
+                                            <SettingsIcon size={14} /> SYSTEM
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* --- SETTINGS OVERLAY --- */}
+                            {viewMode === 'settings' && (
+                                <div className={`absolute inset-0 z-40 p-8 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-200 ${themeKey === 'terminal' ? 'bg-white dark:bg-black text-green-800 dark:text-green-500' : (themeKey === 'heatmap' ? 'bg-solar-white dark:bg-zinc-900 text-slate-800 dark:text-slate-100' : 'bg-white dark:bg-zinc-900 text-black dark:text-zinc-100')}`}>
+                                    <h2 className={`text-xl font-bold uppercase tracking-widest mb-6 text-center border-b ${currentTheme.border} ${currentTheme.darkBorder} pb-2`}>SYSTEM</h2>
+                                    
+                                    <div className="w-full max-w-xs space-y-6">
+                                        <div className="flex flex-col gap-3">
+                                            <span className="text-xs font-bold uppercase tracking-widest opacity-70">Visual Mode</span>
+                                            <button onClick={() => updateDarkMode(!darkMode)} className={`flex items-center justify-between w-full p-3 border ${currentTheme.border} ${currentTheme.darkBorder} hover:opacity-70 transition-opacity`}>
+                                                <span className="uppercase tracking-widest text-sm">{darkMode ? 'Dark Mode' : 'Light Mode'}</span>
+                                                {darkMode ? <Moon size={16} /> : <Sun size={16} />}
+                                            </button>
+                                        </div>
+
+                                        <div className="flex flex-col gap-3">
+                                            <span className="text-xs font-bold uppercase tracking-widest opacity-70">System Theme</span>
+                                            <div className="grid grid-cols-1 gap-2">
+                                                {Object.entries(THEMES).map(([key, theme]) => (
+                                                    <button 
+                                                        key={key}
+                                                        onClick={() => updateTheme(key)}
+                                                        className={`p-3 border ${currentTheme.border} ${currentTheme.darkBorder} text-left uppercase tracking-widest text-sm flex justify-between items-center transition-all
+                                                            ${themeKey === key ? (darkMode ? 'bg-zinc-100 text-black' : 'bg-black text-white') : 'hover:opacity-70'}
+                                                            ${themeKey === key && key === 'terminal' && !darkMode ? '!bg-green-800 !text-white' : ''}
+                                                            ${themeKey === key && key === 'terminal' && darkMode ? '!bg-green-500 !text-black' : ''}
+                                                        `}
+                                                    >
+                                                        {theme.name}
+                                                        {themeKey === key && <Check size={16} />}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>
 
-                        <div className={`w-full flex flex-col items-center gap-4 max-w-md mx-auto transition-opacity duration-300 ${showRules ? "opacity-25 pointer-events-none" : "opacity-100"}`}>
+                        {/* Footer / Controls */}
+                        <div className={`w-full flex flex-col items-center gap-4 max-w-md mx-auto transition-opacity duration-300 ${viewMode !== 'game' ? "opacity-25 pointer-events-none" : "opacity-100"}`}>
                             <div className="w-full text-center">
-                                <div className="w-full flex justify-center gap-4 text-[10px] uppercase tracking-wider px-2 border-b border-gray-200 pb-2">
-                                    <div className="text-black italic"><span className="font-bold">1 Word:</span> 1 Pt</div>
-                                    <div className="text-yellow-600 italic"><span className="font-bold">2 Words:</span> 3 Pts</div>
-                                    <div className="text-green-600 italic"><span className="font-bold">3 Words:</span> 4 Pts</div>
-                                    <div className="text-red-600 italic"><span className="font-bold">4+ Words:</span> 5 Pts</div>
+                                {/* Score Legend (Revamped) */}
+                                <div className="w-full flex justify-between items-center gap-1 px-1 mb-2">
+                                    {[1, 2, 3, 4, 5].map(score => (
+                                        <div key={score} className={`flex-1 h-8 flex items-center justify-center text-xs font-bold border ${currentTheme.border} ${currentTheme.darkBorder} ${currentTheme.legendFills[score]} ${currentTheme.scoreColors[score]}`}>
+                                            {score}{score === 5 ? '+' : ''}
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                             <div className="w-full">
                                 {gameState === 'playing' ? (
                                     <div className="w-full">
-                                        <button onClick={submitGame} disabled={!isFull || isFlickering} className={`w-full py-3 text-sm font-bold tracking-[0.2em] uppercase border border-black transition-all duration-200 ${isFull && !isFlickering ? 'bg-black text-white hover:bg-white hover:text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]' : 'bg-transparent text-gray-400 border-gray-200 cursor-not-allowed'}`}>
+                                        <div className="flex justify-between items-end mb-2 px-1">
+                                            <span className="text-[10px] uppercase tracking-widest opacity-50">Current Efficiency</span>
+                                            <span className="text-xl font-bold">{analysis.score} PTS</span>
+                                        </div>
+                                        <button onClick={submitGame} disabled={!isFull || isFlickering} className={`w-full py-3 text-sm font-bold tracking-[0.2em] uppercase border ${currentTheme.border} ${currentTheme.darkBorder} transition-all duration-200 ${isFull && !isFlickering ? `shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)] ${themeKey === 'terminal' ? 'bg-green-800 hover:bg-green-700 text-white' : 'bg-black text-white hover:bg-white hover:text-black dark:bg-white dark:text-black dark:hover:bg-black dark:hover:text-white'}` : 'bg-transparent opacity-50 cursor-not-allowed'}`}>
                                             {isFlickering ? "Processing..." : "Finalize Report"}
                                         </button>
                                     </div>
                                 ) : (
                                     <div className="w-full flex flex-col gap-3">
-                                        <div className="border border-black p-4 bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden">
-                                            <div className="flex justify-between items-center mb-4 border-b border-black pb-2">
+                                        <div className={`border ${currentTheme.border} ${currentTheme.darkBorder} p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.3)] relative overflow-hidden ${themeKey === 'terminal' ? 'bg-white dark:bg-black' : (themeKey === 'heatmap' ? 'bg-solar-white dark:bg-zinc-900' : 'bg-white dark:bg-zinc-900')}`}>
+                                            <div className={`flex justify-between items-center mb-4 border-b ${currentTheme.border} ${currentTheme.darkBorder} pb-2`}>
                                                 <span className="text-xs uppercase tracking-widest font-bold">Analysis Report</span>
                                                 <div className="flex items-center">
                                                     {analysis.goldMedal && <span className="text-2xl mr-2" title="Gold Medal: 100% Utilization">🥇</span>}
                                                     <span className="text-3xl font-bold">{analysis.score} <span className="text-xs font-normal align-middle">PTS</span></span>
                                                 </div>
                                             </div>
-                                            <p className="text-[10px] text-center mb-4 uppercase tracking-widest text-gray-500">Hover or tap letters to verify word connections</p>
-                                            <button onClick={copyToClipboard} className="w-full mb-3 flex items-center justify-center gap-2 py-2 text-xs uppercase tracking-widest border border-black hover:bg-gray-50 transition-colors">
+                                            <p className="text-[10px] text-center mb-4 uppercase tracking-widest opacity-50">Hover or tap letters to verify word connections</p>
+                                            <button onClick={copyToClipboard} className={`w-full mb-3 flex items-center justify-center gap-2 py-2 text-xs uppercase tracking-widest border ${currentTheme.border} ${currentTheme.darkBorder} hover:opacity-70 transition-colors`}>
                                                 {copyStatus ? <Check size={14} /> : <Clipboard size={14} />} {copyStatus ? "Copied to Clipboard" : "Copy Score Data"}
                                             </button>
-                                            <button onClick={clearGrid} className="w-full py-3 bg-black text-white text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors">Clear Matrix (Retry)</button>
+                                            <button onClick={clearGrid} className={`w-full py-3 text-xs font-bold uppercase tracking-widest hover:opacity-80 transition-colors ${themeKey === 'terminal' ? 'bg-green-800 text-white' : 'bg-black text-white dark:bg-white dark:text-black'}`}>Clear Matrix (Retry)</button>
                                         </div>
                                     </div>
                                 )}
